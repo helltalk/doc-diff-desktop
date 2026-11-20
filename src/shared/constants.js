@@ -18,7 +18,8 @@ const IPC = Object.freeze({
   LIBREOFFICE_CHECK: 'libreoffice:check',
   EXPORT_WRITE: 'export:write',
   SHELL_OPEN_EXTERNAL: 'shell:open-external',
-  CONVERT_PROGRESS: 'convert:progress'
+  CONVERT_PROGRESS: 'convert:progress',
+  HELP_SHOW: 'help:show'
 });
 
 /** 统一错误码。 */

@@ -67,6 +67,7 @@ function loadIpc(stubs) {
       return { convert: async function () { return { outputPath: '' }; }, detect: function () { return { installed: false }; } };
     }
     if (id === './exporter') return { writeExport: async function () { return null; } };
+    if (id === './help') return { show: async function () { return null; } };
     if (id === './parsers/parse-xlsx') return { parseXlsx: stubs.parseXlsx || function () { return { kind: 'sheet' }; } };
     if (id === './parsers/parse-pdf') return { parsePdf: stubs.parsePdf || async function () { return { kind: 'text' }; } };
     if (id === './parsers/parse-doc') {
@@ -97,6 +98,8 @@ test('registerIpc 注册 parse:doc 通道（不再需要 LibreOffice 检测通�
   loaded.registerIpc();
   assert.ok(loaded.handlers.has(IPC.PARSE_DOC), '缺少 parse:doc handler');
   assert.equal(typeof loaded.handlers.get(IPC.PARSE_DOC), 'function');
+  assert.ok(loaded.handlers.has(IPC.HELP_SHOW), '缺少 help:show handler');
+  assert.equal(typeof loaded.handlers.get(IPC.HELP_SHOW), 'function');
 });
 
 test('parse:doc handler 原样传递中文/空格路径与 meta 并返回 {ok:true,data}', async function () {

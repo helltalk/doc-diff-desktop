@@ -10,6 +10,7 @@
 const path = require('node:path');
 const { app, BrowserWindow, shell } = require('electron');
 const { registerIpc } = require('./ipc');
+const { installApplicationMenu } = require('./menu');
 
 /** @type {BrowserWindow|null} 主窗口引用。 */
 let mainWindow = null;
@@ -29,6 +30,7 @@ if (!gotTheLock) {
 
   app.whenReady().then(function () {
     registerIpc();
+    installApplicationMenu();
     createWindow();
 
     app.on('activate', function () {

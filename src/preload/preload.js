@@ -85,6 +85,11 @@ const electronAPI = Object.freeze({
     return invoke(IPC.SHELL_OPEN_EXTERNAL, { url: unwrapString(url, 'url') });
   },
 
+  /** 显示帮助 / 关于对话框：入参 {kind:'help'|'about'} */
+  showHelp: function (options) {
+    return invoke(IPC.HELP_SHOW, options || {});
+  },
+
   /** 从 File 对象取真实路径（网络映射盘场景必须） */
   getPathForFile: function (file) {
     return webUtils.getPathForFile(file);

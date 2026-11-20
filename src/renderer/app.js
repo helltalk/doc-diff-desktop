@@ -575,6 +575,13 @@ function bindToolbar() {
   $('btnExportTxt').addEventListener('click', exportTxt);
   $('btnExportCsv').addEventListener('click', exportCsv);
   $('btnPrint').addEventListener('click', function () { window.print(); });
+  $('btnHelp').addEventListener('click', function () {
+    api.showHelp({ kind: 'help' }).then(function (res) {
+      if (res && !res.ok) toast('打开帮助失败：' + res.message);
+    }).catch(function (err) {
+      toast('打开帮助失败：' + (err.message || String(err)));
+    });
+  });
   $('btnLoDownload').addEventListener('click', function () {
     api.openExternal(LO_DOWNLOAD_URL).then(function (res) {
       if (res && !res.ok) toast('打开下载页失败：' + res.message);

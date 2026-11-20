@@ -67,6 +67,7 @@ window.electronAPI = {
     return ok(null);
   },
   openExternal: async function () { return ok(null); },
+  showHelp: async function () { return ok(null); },
   getPathForFile: function (file) { return file.path || ''; },
   onConvertProgress: function () { return function () {}; }
 };

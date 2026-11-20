@@ -17,6 +17,7 @@ const exporter = require('./exporter');
 const { parseXlsx } = require('./parsers/parse-xlsx');
 const { parseDoc } = require('./parsers/parse-doc');
 const { parsePdf } = require('./parsers/parse-pdf');
+const help = require('./help');
 
 /** 统一包装 IPC handler。 */
 function wrap(handler, fallbackCode) {
@@ -140,7 +141,10 @@ function registerIpc() {
     [IPC.EXPORT_WRITE, wrap(function (_event, payload) {
       return exporter.writeExport(payload.path, payload.content, payload.encoding);
     }, ERR.EXPORT_WRITE)],
-    [IPC.SHELL_OPEN_EXTERNAL, wrap(openExternal, ERR.EXTERNAL_BLOCKED)]
+    [IPC.SHELL_OPEN_EXTERNAL, wrap(openExternal, ERR.EXTERNAL_BLOCKED)],
+    [IPC.HELP_SHOW, wrap(function (_event, payload) {
+      return help.show(payload && payload.kind === 'about' ? 'about' : 'help');
+    }, ERR.DIALOG_FAILED)]
   ];
 
   for (const [channel, handler] of bindings) {

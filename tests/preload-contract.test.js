@@ -128,7 +128,7 @@ test('真实 preload：exposeInMainWorld 白名单方法名保持不变且 API �
   const loaded = loadRealPreload();
   const expected = [
     'selectFile', 'saveFile', 'readBuffer', 'convert', 'parseXlsx', 'parseDoc', 'parsePdf',
-    'checkLibreOffice', 'writeExport', 'openExternal', 'getPathForFile', 'onConvertProgress'
+    'checkLibreOffice', 'writeExport', 'openExternal', 'showHelp', 'getPathForFile', 'onConvertProgress'
   ];
   for (const name of expected) {
     assert.equal(typeof loaded.api[name], 'function', 'electronAPI.' + name);
