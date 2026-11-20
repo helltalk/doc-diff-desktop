@@ -11,7 +11,7 @@
 > - [免安装版 zip（约 169MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-desktop-portable-1.1.0-x64.zip)
 > - [网页版 HTML（约 51KB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-tool-web.html)
 >
-> 仓库内源码可用 `npm run dist:win` 自行构建。
+> 仓库内源码可用 `npm run dist:win` 自行构建。本地构建产物名为中文（如 `文档差异对比工具-安装版-1.1.0-x64.exe`），Release 附件统一使用 ASCII 文件名；从 Releases 下载时请认准上文列出的 ASCII 名。
 
 > ⚠️ **首次安装请注意（本版未做代码签名）**
 > Windows 安装 `.exe` 时可能弹出蓝色提示「Windows 已保护你的电脑 / 未知发布者」。
@@ -21,14 +21,14 @@
 
 ### 方式 A：安装版（推荐）
 
-1. 下载 `文档差异对比工具-安装版-1.1.0-x64.exe`；
+1. 从 Releases 下载 `doc-diff-desktop-installer-1.1.0-x64.exe`（即安装版 exe）；
 2. 双击运行，遇到 SmartScreen 提示时按上文选择「更多信息」→「仍要运行」；
 3. 可按向导选择安装目录，默认创建桌面快捷方式；
 4. 从开始菜单 / 桌面快捷方式启动。
 
 ### 方式 B：免安装版（绿色版）
 
-1. 下载并解压 `文档差异对比工具-免安装版-1.1.0-x64.zip`；
+1. 从 Releases 下载并解压 `doc-diff-desktop-portable-1.1.0-x64.zip`（即免安装版 zip）；
 2. 进入解压目录，双击 `文档差异对比工具.exe`；
 3. 无需管理员权限，可直接放在 U 盘或使用网络盘运行；卸载只需删除整个目录。
 

@@ -44,6 +44,15 @@ env -u https_proxy -u HTTPS_PROXY -u http_proxy -u HTTP_PROXY \
 
 本机直连 Git 推送容易 SSL 失败，统一使用上面的无代理 + HTTP/1.1 + openssl 方式。tag 必须推送到 origin，否则 Release 无法关联到可追溯的源码提交。
 
+> **tag 类型与例外处理**：优先使用上面的 `git tag -a` 附注 tag。若 git 推送通道确实不可用（例如本机代理返回 `CONNECT tunnel failed, 502`、直连 `github.com:443` 被 reset，而 REST API 可正常访问），可用 GitHub Git refs API 创建**轻量 tag** 作为等价替代：
+>
+> - 新建：`POST /repos/helltalk/doc-diff-desktop/git/refs`，body 为 `{"ref":"refs/tags/v<版本>","sha":"<目标提交 SHA>"}`；
+> - 若 tag 已存在（例如旧 Release 自动创建的同名 tag），用 `PATCH /repos/helltalk/doc-diff-desktop/git/refs/tags/v<版本>` 并置 `"force":true` 重指向正确提交。
+>
+> 轻量 tag 功能上完全可用；采用此例外时**必须在 `CHANGELOG.md` 的版本记录中注明「tag 经 API 创建、为轻量 tag」**，并在推送通道恢复后保持本地与远端 tag SHA 一致。
+>
+> 本次 v1.0.0 / v1.1.0 即因 git 通道被网络策略阻断而采用该例外（均为轻量 tag），已在 `CHANGELOG.md` 记录。
+
 ## 4. 新建 GitHub Release（关键：绝不覆盖旧 Release）
 
 1. 用 GitHub API 或网页**新建** Release，`tag_name` 为 `v<版本>`，标题形如 `文档差异对比工具 v1.1.0`，正文放 Release Notes（直接摘取 CHANGELOG 该版本条目）。
