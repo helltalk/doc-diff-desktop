@@ -61,7 +61,9 @@ test('帮助文案覆盖用法、格式、限制与版本信息', function () {
   assert.match(HELP_TEXT, /docx \/ doc \/ xlsx \/ xls \/ pdf \/ txt \/ md/);
   assert.match(HELP_TEXT, /限制/);
   assert.match(HELP_TEXT, /扫描版 PDF/);
-  assert.match(ABOUT_TEXT, /1\.0\.0/);
+  // 版本号唯一来源是 package.json，断言随之变化，避免升级版本后测试误报。
+  const appVersion = require('../package.json').version;
+  assert.ok(ABOUT_TEXT.includes(appVersion), '关于文案应展示 package.json 版本号：' + appVersion);
 });
 
 test('主进程启动即安装中文菜单，渲染层工具栏提供帮助入口', function () {

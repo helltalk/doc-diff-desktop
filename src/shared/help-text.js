@@ -2,6 +2,10 @@
 
 /** 帮助弹窗文案：桌面版「帮助 → 使用说明 / 关于」与工具栏「帮助」共用。 */
 
+// 版本号唯一来源是 package.json，避免升级版本后「关于」弹窗仍显示旧版本号。
+// 本模块仅被主进程引用（渲染层共享入口不含它），因此可直接读取项目根 package.json。
+const { version } = require('../../package.json');
+
 const HELP_TITLE = '使用说明与限制';
 
 const HELP_TEXT = [
@@ -26,7 +30,7 @@ const HELP_TEXT = [
 const ABOUT_TITLE = '关于';
 
 const ABOUT_TEXT = [
-  '文档差异对比工具（桌面版）1.0.0',
+  '文档差异对比工具（桌面版）' + version,
   '',
   '本地离线运行，支持 docx / doc / xlsx / xls / pdf / txt / md 七类格式。',
   '无需安装 LibreOffice 或任何外部软件，文件不会上传到网络。',

@@ -1,6 +1,6 @@
 {
   "name": "doc-diff-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "文档差异对比工具桌面版 - 本地离线对比 docx/txt/md/xlsx/doc/xls/pdf 七种格式",
   "main": "src/main/main.js",
   "author": "软件开发团队",

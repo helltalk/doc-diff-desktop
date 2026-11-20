@@ -1,13 +1,15 @@
 # 文档差异对比工具（桌面版）
 
+> 当前版本 **1.1.0**。完整版本变更记录见 [CHANGELOG.md](CHANGELOG.md)；后续发版遵循 [发版规范](docs/RELEASING.md)。
+
 本地离线的 Windows 桌面应用，对比 **docx / doc / xlsx / xls / pdf / txt / md** 七类文档，列出全部新增 / 删除 / 修改，支持筛选、搜索、三种视图、导出与打印。**文件不上传、无需联网、全格式开箱即用——不需要安装 LibreOffice 或任何外部软件。**
 
-> 本项目同时收录了前身——零依赖单文件网页版工具，位于 [`web-version/`](web-version/) 目录（双击 `文档差异对比工具.html` 即可离线使用，支持 docx/txt/md），也可直接下载 [网页版单文件 HTML](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-tool-web.html)。桌面版在它基础上扩展了格式与原生系统对话框。
+> 本项目同时收录了前身——零依赖单文件网页版工具，位于 [`web-version/`](web-version/) 目录（双击 `文档差异对比工具.html` 即可离线使用，支持 docx/txt/md），也可直接下载 [网页版单文件 HTML](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-tool-web.html)。桌面版在它基础上扩展了格式与原生系统对话框。
 >
 > 安装包（130MB exe / 169MB zip）因超过 GitHub 单文件 100MB 限制，作为 **Releases 附件** 发布，不在仓库内。请到本仓库 [Releases 页面](https://github.com/helltalk/doc-diff-desktop/releases) 下载，或直接下载：
-> - [安装版 exe（130MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-desktop-installer-1.0.0-x64.exe)
-> - [免安装版 zip（169MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-desktop-portable-1.0.0-x64.zip)
-> - [网页版 HTML（约 51KB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-tool-web.html)
+> - [安装版 exe（约 130MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-desktop-installer-1.1.0-x64.exe)
+> - [免安装版 zip（约 169MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-desktop-portable-1.1.0-x64.zip)
+> - [网页版 HTML（约 51KB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-tool-web.html)
 >
 > 仓库内源码可用 `npm run dist:win` 自行构建。
 
@@ -19,14 +21,14 @@
 
 ### 方式 A：安装版（推荐）
 
-1. 下载 `文档差异对比工具-安装版-1.0.0-x64.exe`；
+1. 下载 `文档差异对比工具-安装版-1.1.0-x64.exe`；
 2. 双击运行，遇到 SmartScreen 提示时按上文选择「更多信息」→「仍要运行」；
 3. 可按向导选择安装目录，默认创建桌面快捷方式；
 4. 从开始菜单 / 桌面快捷方式启动。
 
 ### 方式 B：免安装版（绿色版）
 
-1. 下载并解压 `文档差异对比工具-免安装版-1.0.0-x64.zip`；
+1. 下载并解压 `文档差异对比工具-免安装版-1.1.0-x64.zip`；
 2. 进入解压目录，双击 `文档差异对比工具.exe`；
 3. 无需管理员权限，可直接放在 U 盘或使用网络盘运行；卸载只需删除整个目录。
 
@@ -34,7 +36,7 @@
 
 ### 方式 C：网页版（单文件 HTML，免安装）
 
-1. 从仓库 [`web-version/`](web-version/) 或 [Release 附件](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-tool-web.html) 下载 `文档差异对比工具.html`（约 51KB）；
+1. 从仓库 [`web-version/`](web-version/) 或 [Release 附件](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.1.0/doc-diff-tool-web.html) 下载 `文档差异对比工具.html`（约 51KB）；
 2. 用 Edge / Chrome 等浏览器**从本地文件直接打开**，无需安装、无需联网、不上传文件；
 3. 分别选择原文档和新文档，点击「开始对比」，再筛选、复制或导出清单。
 
@@ -83,7 +85,7 @@
 4. **筛选与搜索**：用「全部 / 仅新增 / 仅删除 / 仅修改」按钮和搜索框缩小结果范围，三个视图与导出内容同步。
 5. **导出**：「导出 HTML / TXT / CSV」调用系统保存对话框选择路径，默认文件名按两份源文件生成：仅版本号/rev 不同时只保留主体名（如 `OTM 7000 K产品技术要求 rev 1.4` 与 `... rev 1.5` → `OTM 7000 K产品技术要求_差异清单.txt`），其它情况用 `旧报表_vs_新报表_差异清单.csv`；TXT / CSV 为 UTF-8 BOM 编码（Excel 双击不乱码），HTML 为 UTF-8。取消保存会静默返回。
 6. **帮助**：工具栏「帮助」按钮，或应用菜单「帮助 → 使用说明 / 关于」，可随时查看用法与限制。应用菜单已全部改为中文。
-6. **复制 / 打印**：「复制全部」复制当前筛选结果；「打印」调用系统打印，自动隐藏工具栏等界面元素。
+7. **复制 / 打印**：「复制全部」复制当前筛选结果；「打印」调用系统打印，自动隐藏工具栏等界面元素。
 
 ## 五、验收清单
 
@@ -124,6 +126,8 @@ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-
 ```
 
 配置中 `electronDist: node_modules/electron/dist` 让打包复用已安装的 Electron 运行时，避免再次从 GitHub 下载；NSIS / 7zip / 图标等工具集首次构建需联网下载到 `%LOCALAPPDATA%\electron-builder\Cache`，之后可离线构建。
+
+> 发版（版本升级 → 打 tag → 新建 Release → 上传附件 → 更新 CHANGELOG / 下载链接）请严格按 [docs/RELEASING.md](docs/RELEASING.md) 执行：**每个版本一个独立 Release，绝不覆盖旧 Release 或同名附件**。
 
 > 注：部分终端预先设置了 `ELECTRON_RUN_AS_NODE=1`，会让 Electron 退化成纯 Node；运行 `scripts/e2e-app.js` 或 `scripts/smoke.js` 时需用 `env -u ELECTRON_RUN_AS_NODE` 清除该变量。
 
