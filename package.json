@@ -1,0 +1,28 @@
+{
+  "name": "doc-diff-desktop",
+  "version": "1.0.0",
+  "description": "文档差异对比工具桌面版 - 本地离线对比 docx/txt/md/xlsx/doc/xls/pdf 七种格式",
+  "main": "src/main/main.js",
+  "author": "软件开发团队",
+  "license": "MIT",
+  "scripts": {
+    "build:preload": "node scripts/bundle-preload.js",
+    "build:renderer": "node scripts/bundle-renderer.js",
+    "build": "npm run build:preload && npm run build:renderer",
+    "prestart": "npm run build",
+    "start": "electron .",
+    "predist:win": "npm run build",
+    "dist:win": "electron-builder --win",
+    "postdist:win": "node scripts/rename-artifacts.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5",
+    "pdfjs-dist": "^6.5.438"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.25.0"
+  }
+}

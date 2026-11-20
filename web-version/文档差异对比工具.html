@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文档差异对比工具</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --text:#1f2329; --muted:#646a73;
+  --border:#e5e6eb; --primary:#3370ff; --primary-hover:#245bdb;
+  --add-bg:#e8f8ee; --add-text:#177245; --add-border:#b7e2c7;
+  --del-bg:#fdeceb; --del-text:#b32e26; --del-border:#f2c4c0;
+  --mod-bg:#fff4e6; --mod-text:#a85c00; --mod-border:#f3d3a3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;line-height:1.6}
+.app{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+header h1{margin:0 0 8px;font-size:24px;font-weight:600}
+header .sub{margin:0 0 4px;color:#4e535b}
+header .hint{margin:0;color:var(--muted);font-size:13px}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+.slot{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.slot-title{font-weight:600;margin-bottom:10px}
+.drop{border:2px dashed var(--border);border-radius:10px;padding:22px 14px;text-align:center;cursor:pointer;transition:.15s;background:#fafbfc}
+.drop:hover,.drop.drag{border-color:var(--primary);background:#f0f5ff}
+.drop-icon{font-size:26px;line-height:1.2}
+.link{color:var(--primary)}
+.slot-file{margin-top:10px;font-size:13px;color:var(--muted);word-break:break-all}
+.slot-file.ok{color:var(--add-text)}
+.slot-file.err{color:var(--del-text)}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+button{font:inherit;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text);padding:7px 13px;border-radius:8px;transition:.12s}
+button:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+button.primary:hover:not(:disabled){background:var(--primary-hover);color:#fff}
+.sep{width:1px;height:22px;background:var(--border);margin:0 4px}
+.spacer{flex:1}
+.segmented{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.segmented button{border:0;border-radius:0;padding:7px 13px}
+.segmented button+button{border-left:1px solid var(--border)}
+.segmented button.active{background:#eaf1ff;color:var(--primary);font-weight:600}
+input[type=search]{font:inherit;padding:7px 11px;border:1px solid var(--border);border-radius:8px;min-width:180px;outline:none}
+input[type=search]:focus{border-color:var(--primary)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.filters button.active{background:#eaf1ff;border-color:var(--primary);color:var(--primary);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.stat-num{font-size:26px;font-weight:700;line-height:1.2}
+.stat-label{color:var(--muted);font-size:13px}
+.stat.added .stat-num{color:var(--add-text)}
+.stat.removed .stat-num{color:var(--del-text)}
+.stat.modified .stat-num{color:var(--mod-text)}
+.status{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;text-align:center;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:8px}
+.status.error{background:var(--del-bg);border-color:var(--del-border);color:var(--del-text)}
+.status.ok{background:var(--add-bg);border-color:var(--add-border);color:var(--add-text)}
+.status.loading{background:#f0f5ff;border-color:#c9d9ff;color:var(--primary)}
+.status-icon{font-size:26px;line-height:1.2}
+.hidden{display:none!important}
+.diff-card{background:var(--card);border:1px solid var(--border);border-left-width:4px;border-radius:10px;padding:12px 16px;margin:10px 0}
+.diff-card.added{border-left-color:var(--add-border);background:linear-gradient(90deg,var(--add-bg) 0%,#fff 30%)}
+.diff-card.removed{border-left-color:var(--del-border);background:linear-gradient(90deg,var(--del-bg) 0%,#fff 30%)}
+.diff-card.modified{border-left-color:var(--mod-border);background:linear-gradient(90deg,var(--mod-bg) 0%,#fff 30%)}
+.badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:10px;margin-right:8px;font-weight:600}
+.added .badge{background:var(--add-bg);color:var(--add-text)}
+.removed .badge{background:var(--del-bg);color:var(--del-text)}
+.modified .badge{background:var(--mod-bg);color:var(--mod-text)}
+.line-no{color:#8a9099;font-size:12px}
+.line-text{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;font-size:13px;margin-top:6px}
+.added-text{color:var(--add-text)}
+.removed-text{color:var(--del-text)}
+ins{background:#c9f2d4;color:#0e6b2c;text-decoration:none;border-radius:2px;padding:0 1px}
+del{background:#ffd7d3;color:#a3281f;text-decoration:line-through;border-radius:2px;padding:0 1px}
+.pair-row{display:flex;gap:10px;padding:3px 0}
+.pair-label{flex:0 0 34px;color:#8a9099;font-size:12px;padding-top:8px}
+.side-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.side-col{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.side-head{padding:10px 14px;font-weight:600;border-bottom:1px solid var(--border);background:#fafbfc}
+.side-lines{max-height:62vh;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.side-line{display:flex;gap:10px;padding:2px 10px;white-space:pre-wrap;word-break:break-word;border-left:3px solid transparent}
+.side-line .ln{flex:0 0 42px;text-align:right;color:#a6abb3;user-select:none}
+.side-line.hi{border-left-color:var(--del-border);background:var(--del-bg)}
+.side-col:last-child .side-line.hi{border-left-color:var(--add-border);background:var(--add-bg)}
+.side-line.mod{border-left-color:var(--mod-border);background:var(--mod-bg)}
+.side-sync-bar{display:flex;justify-content:flex-end;margin:8px 0 4px}
+.side-sync-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.side-sync-toggle input{cursor:pointer;margin:0}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#1f2329;color:#fff;padding:10px 18px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:99}
+.empty{text-align:center;color:var(--muted);padding:24px}
+@media(max-width:800px){
+  .inputs,.side-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  input[type=search]{min-width:120px;flex:1}
+}
+@media print{
+  body{background:#fff}
+  .app{max-width:none;padding:0}
+  .toolbar,.filters,.inputs,header .hint,#toast,.spacer{display:none!important}
+  .diff-card{break-inside:avoid;box-shadow:none;border:1px solid #ddd;border-left-width:4px;margin:6px 0;padding:8px 12px}
+  .stat{box-shadow:none}
+  .side-lines{max-height:none;overflow:visible}
+  .side-sync-bar{display:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>文档差异对比工具</h1>
+    <p class="sub">拖入两个文档 → 自动列出所有新增 / 删除 / 修改 → 可筛选、可导出、可打印。全部在本地浏览器完成，不上传任何文件，无需联网。</p>
+    <p class="hint">支持 .docx / .txt / .md / .csv 等；暂不支持 .doc、.pdf（可先用 LibreOffice 另存为 .docx 或 .txt）。</p>
+  </header>
+
+  <section class="inputs">
+    <div class="slot">
+      <div class="slot-title">原文档（旧版本）</div>
+      <div class="drop" id="dropOld">
+        <div class="drop-icon">&#128193;</div>
+        <div>拖拽文件到此处，或 <span class="link">点击选择</span></div>
+        <div class="slot-file" id="fileOld">未选择文件</div>
+      </div>
+      <input type="file" id="inputOld" accept=".docx,.txt,.md,.csv,.text,.log" hidden>
+    </div>
+    <div class="slot">
+      <div class="slot-title">新文档（新版本）</div>
+      <div class="drop" id="dropNew">
+        <div class="drop-icon">&#128193;</div>
+        <div>拖拽文件到此处，或 <span class="link">点击选择</span></div>
+        <div class="slot-file" id="fileNew">未选择文件</div>
+      </div>
+      <input type="file" id="inputNew" accept=".docx,.txt,.md,.csv,.text,.log" hidden>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <button id="btnCompare" class="primary">开始对比</button>
+    <span class="sep"></span>
+    <div class="segmented" id="viewSwitch">
+      <button type="button" data-view="list" class="active">清单视图</button>
+      <button type="button" data-view="side">并排视图</button>
+    </div>
+    <span class="sep"></span>
+    <input type="search" id="searchBox" placeholder="搜索差异内容…" aria-label="搜索差异内容">
+    <span class="spacer"></span>
+    <button type="button" id="btnCopy">复制全部</button>
+    <button type="button" id="btnExportHtml">导出 HTML</button>
+    <button type="button" id="btnExportTxt">导出 TXT</button>
+    <button type="button" id="btnExportCsv">导出 CSV</button>
+    <button type="button" id="btnPrint">打印</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <button type="button" data-filter="all" class="active">全部</button>
+    <button type="button" data-filter="added">仅新增</button>
+    <button type="button" data-filter="removed">仅删除</button>
+    <button type="button" data-filter="modified">仅修改</button>
+  </div>
+
+  <section id="stats" class="stats hidden">
+    <div class="stat added"><div class="stat-num" id="statAdded">0</div><div class="stat-label">新增</div></div>
+    <div class="stat removed"><div class="stat-num" id="statRemoved">0</div><div class="stat-label">删除</div></div>
+    <div class="stat modified"><div class="stat-num" id="statModified">0</div><div class="stat-label">修改</div></div>
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">共差异</div></div>
+  </section>
+
+  <section id="status" class="status"></section>
+
+  <main>
+    <div id="listView" class="hidden"><div id="diffList"></div></div>
+    <div id="sideView" class="hidden">
+      <div class="side-sync-bar">
+        <label class="side-sync-toggle"><input type="checkbox" id="syncScrollToggle" checked> 同步滚动</label>
+      </div>
+      <div class="side-grid">
+        <div class="side-col"><div class="side-head">原文档</div><div class="side-lines" id="sideLeft"></div></div>
+        <div class="side-col"><div class="side-head">新文档</div><div class="side-lines" id="sideRight"></div></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+</div>
+
+<script>
+'use strict';
+
+/* ===================== 全局状态 ===================== */
+const state = {
+  files: { old: null, new: null },
+  oldLines: [],
+  newLines: [],
+  diffs: [],
+  view: 'list',
+  filter: 'all',
+  search: '',
+  busy: false,
+  compared: false
+};
+
+/* ===================== 通用工具 ===================== */
+function $(id) { return document.getElementById(id); }
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function escapeHtml(value) {
+  const s = value == null ? '' : String(value);
+  return s.replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+}
+
+function formatSize(n) {
+  const bytes = Number(n) || 0;
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function nextFrame() {
+  return new Promise(function (resolve) {
+    requestAnimationFrame(function () { requestAnimationFrame(resolve); });
+  });
+}
+
+let toastTimer = 0;
+function toast(message) {
+  const el = $('toast');
+  el.textContent = message;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.classList.add('hidden'); }, 2600);
+}
+
+function showStatus(type, message) {
+  const el = $('status');
+  el.className = 'status ' + (type || '');
+  if (type === 'none') {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+  const icons = { empty: '&#128193;', loading: '&#8987;', error: '&#9888;&#65039;', ok: '&#9989;' };
+  el.innerHTML = '<div class="status-icon">' + (icons[type] || '') + '</div><div>' + escapeHtml(message) + '</div>';
+}
+
+/* ===================== 文件类型与文本解码 ===================== */
+function fileKind(name) {
+  const lower = String(name || '').toLowerCase();
+  const dot = lower.lastIndexOf('.');
+  const ext = dot >= 0 ? lower.slice(dot + 1) : '';
+  if (ext === 'docx') return 'docx';
+  if (ext === 'doc') return 'doc-unsupported';
+  if (ext === 'pdf') return 'pdf-unsupported';
+  if (['txt', 'md', 'csv', 'text', 'log', 'json', 'xml', 'ini', 'yaml', 'yml'].indexOf(ext) >= 0) return 'text';
+  return 'text';
+}
+
+async function decodeTextBuffer(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+    return new TextDecoder('utf-16le').decode(bytes);
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+    return new TextDecoder('utf-16be').decode(bytes);
+  }
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch (err) {
+    try {
+      return new TextDecoder('gbk', { fatal: false }).decode(bytes);
+    } catch (err2) {
+      return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    }
+  }
+}
+
+async function readDocument(file) {
+  const kind = fileKind(file.name);
+  if (kind === 'doc-unsupported') {
+    throw new Error('暂不支持老式 .doc 二进制格式。请用 LibreOffice 打开后选择「另存为」→ Word 2007-365 (.docx) 或纯文本 (.txt)，再拖入工具。');
+  }
+  if (kind === 'pdf-unsupported') {
+    throw new Error('暂不支持 .pdf 格式。请用 LibreOffice 打开 PDF 后另存为 .docx 或 .txt，再拖入工具。');
+  }
+  if (kind === 'docx') return parseDocx(file);
+  const buffer = await file.arrayBuffer();
+  const text = await decodeTextBuffer(buffer);
+  return text.split(/\r\n|\r|\n/);
+}
+
+/* ===================== DOCX：ZIP 中央目录解析 ===================== */
+function findZipEntry(buf, targetName) {
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let eocd = -1;
+  const minPos = Math.max(0, buf.length - 22 - 65535);
+  for (let i = buf.length - 22; i >= minPos; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('无法识别 DOCX 的 ZIP 结构（未找到中央目录结束标记）。');
+
+  let entries = dv.getUint16(eocd + 10, true);
+  let cd = dv.getUint32(eocd + 16, true);
+  const utf8 = new TextDecoder('utf-8');
+
+  for (let k = 0; k < entries; k++) {
+    if (cd + 46 > buf.length || dv.getUint32(cd, true) !== 0x02014b50) break;
+    const method = dv.getUint16(cd + 10, true);
+    const compressedSize = dv.getUint32(cd + 20, true);
+    const uncompressedSize = dv.getUint32(cd + 24, true);
+    const nameLen = dv.getUint16(cd + 28, true);
+    const extraLen = dv.getUint16(cd + 30, true);
+    const commentLen = dv.getUint16(cd + 32, true);
+    const localOffset = dv.getUint32(cd + 42, true);
+    const name = utf8.decode(buf.subarray(cd + 46, cd + 46 + nameLen));
+
+    if (name === targetName) {
+      if (localOffset + 30 > buf.length || dv.getUint32(localOffset, true) !== 0x04034b50) {
+        throw new Error('DOCX 本地文件头异常，文件可能已损坏。');
+      }
+      const localNameLen = dv.getUint16(localOffset + 26, true);
+      const localExtraLen = dv.getUint16(localOffset + 28, true);
+      const dataOffset = localOffset + 30 + localNameLen + localExtraLen;
+      if (dataOffset + compressedSize > buf.length) {
+        throw new Error('DOCX 数据区越界，文件可能已损坏。');
+      }
+      return { method: method, compressedSize: compressedSize, uncompressedSize: uncompressedSize, dataOffset: dataOffset };
+    }
+    cd += 46 + nameLen + extraLen + commentLen;
+  }
+  return null;
+}
+
+async function inflateRawAsync(bytes, expectedSize) {
+  if (typeof DecompressionStream === 'function' && typeof Blob !== 'undefined' && Blob.prototype.stream) {
+    try {
+      const ds = new DecompressionStream('deflate-raw');
+      const stream = new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (err) {
+      /* 浏览器不支持或解压失败时，回退到内联纯 JS 实现 */
+    }
+  }
+  return inflateRawJS(bytes, expectedSize);
+}
+
+/**
+ * 纯 JavaScript 的 raw DEFLATE 解压（zlib puff 算法的移植）。
+ * 作为 DecompressionStream 不可用时的降级方案，保证离线双击可用。
+ */
+function inflateRawJS(data, expectedSize) {
+  const MAXBITS = 15;
+  const cursor = { i: 0, bitbuf: 0, bitcnt: 0 };
+
+  function bits(need) {
+    while (cursor.bitcnt < need) {
+      if (cursor.i >= data.length) throw new Error('DEFLATE 数据意外结束。');
+      cursor.bitbuf |= data[cursor.i++] << cursor.bitcnt;
+      cursor.bitcnt += 8;
+    }
+    const val = cursor.bitbuf & ((1 << need) - 1);
+    cursor.bitbuf >>>= need;
+    cursor.bitcnt -= need;
+    return val;
+  }
+
+  function newHuff(nsym) {
+    return {
+      count: new Array(MAXBITS + 1).fill(0),
+      length: new Array(nsym).fill(0),
+      symbol: new Array(nsym).fill(0)
+    };
+  }
+
+  function construct(h) {
+    h.count[0] = 0;
+    // 符号表按码长分组、组内按符号升序；decode() 依此偏移直接索引。
+    const offs = new Array(MAXBITS + 2).fill(0);
+    for (let len = 1; len < MAXBITS; len++) offs[len + 1] = offs[len] + h.count[len];
+    for (let sym = 0; sym < h.length.length; sym++) {
+      const l = h.length[sym];
+      if (l) h.symbol[offs[l]++] = sym;
+    }
+  }
+
+  function decode(h) {
+    let code = 0, first = 0, index = 0;
+    for (let len = 1; len <= MAXBITS; len++) {
+      code |= bits(1);
+      const count = h.count[len] || 0;
+      if (code - first < count) return h.symbol[index + code - first];
+      index += count;
+      first += count;
+      first <<= 1;
+      code <<= 1;
+    }
+    throw new Error('无效的 Huffman 编码。');
+  }
+
+  const lencode = newHuff(288);
+  const distcode = newHuff(32);
+
+  function fixedTables() {
+    for (let i = 0; i < 288; i++) lencode.length[i] = i < 144 ? 8 : (i < 256 ? 9 : (i < 280 ? 7 : 8));
+    lencode.count.fill(0);
+    for (let i = 0; i < 288; i++) lencode.count[lencode.length[i]]++;
+    construct(lencode);
+    for (let i = 0; i < 32; i++) distcode.length[i] = 5;
+    distcode.count.fill(0);
+    distcode.count[5] = 32;
+    construct(distcode);
+  }
+
+  function dynamicTables() {
+    const nlen = bits(5) + 257;
+    const ndist = bits(5) + 1;
+    const ncode = bits(4) + 4;
+    const order = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+    const codeLengths = new Array(19).fill(0);
+    for (let i = 0; i < ncode; i++) codeLengths[order[i]] = bits(3);
+    const codecode = newHuff(19);
+    for (let i = 0; i < 19; i++) codecode.length[i] = codeLengths[i];
+    for (let i = 0; i < 19; i++) codecode.count[codeLengths[i]]++;
+    construct(codecode);
+
+    const lengths = new Array(nlen + ndist).fill(0);
+    let n = 0;
+    while (n < nlen + ndist) {
+      const sym = decode(codecode);
+      if (sym < 16) {
+        lengths[n++] = sym;
+      } else if (sym === 16) {
+        if (n === 0) throw new Error('无效的重复编码。');
+        const repeat = 3 + bits(2);
+        const prev = lengths[n - 1];
+        for (let j = 0; j < repeat && n < nlen + ndist; j++) lengths[n++] = prev;
+      } else if (sym === 17) {
+        const repeat = 3 + bits(3);
+        for (let j = 0; j < repeat && n < nlen + ndist; j++) lengths[n++] = 0;
+      } else if (sym === 18) {
+        const repeat = 11 + bits(7);
+        for (let j = 0; j < repeat && n < nlen + ndist; j++) lengths[n++] = 0;
+      } else {
+        throw new Error('无效的编码长度符号。');
+      }
+    }
+
+    for (let i = 0; i < nlen; i++) lencode.length[i] = lengths[i];
+    lencode.count.fill(0);
+    for (let i = 0; i < nlen; i++) lencode.count[lencode.length[i]]++;
+    construct(lencode);
+
+    for (let i = 0; i < ndist; i++) distcode.length[i] = lengths[nlen + i];
+    distcode.count.fill(0);
+    for (let i = 0; i < ndist; i++) distcode.count[distcode.length[i]]++;
+    construct(distcode);
+  }
+
+  const lengthBase = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+  const lengthExtra = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  const distBase = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+  const distExtra = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+
+  const out = [];
+  let last = 0;
+  do {
+    last = bits(1);
+    const type = bits(2);
+    if (type === 0) {
+      cursor.bitbuf = 0;
+      cursor.bitcnt = 0;
+      const len = bits(16);
+      const nlen = bits(16);
+      if ((len ^ 0xffff) !== nlen) throw new Error('存储的 DEFLATE 块长度校验失败。');
+      for (let i = 0; i < len; i++) {
+        if (cursor.i >= data.length) throw new Error('DEFLATE 数据意外结束。');
+        out.push(data[cursor.i++]);
+      }
+    } else if (type === 1 || type === 2) {
+      if (type === 1) fixedTables(); else dynamicTables();
+      while (true) {
+        const sym = decode(lencode);
+        if (sym < 256) {
+          out.push(sym);
+        } else if (sym === 256) {
+          break;
+        } else {
+          const idx = sym - 257;
+          if (idx < 0 || idx >= lengthBase.length) throw new Error('无效的长度编码。');
+          const len = lengthBase[idx] + bits(lengthExtra[idx]);
+          const dsym = decode(distcode);
+          if (dsym < 0 || dsym >= distBase.length) throw new Error('无效的距离编码。');
+          const dist = distBase[dsym] + bits(distExtra[dsym]);
+          if (dist > out.length) throw new Error('距离超出可用数据范围。');
+          for (let k = 0; k < len; k++) out.push(out[out.length - dist]);
+        }
+      }
+    } else {
+      throw new Error('保留的 DEFLATE 块类型，无法解压。');
+    }
+  } while (!last);
+
+  if (expectedSize && out.length !== expectedSize) {
+    // 尺寸不一致不视为致命错误，仅在结果层交由上层继续处理。
+  }
+  return new Uint8Array(out);
+}
+
+/* ===================== DOCX：document.xml 段落提取 ===================== */
+function collectParagraphText(node, out) {
+  const children = node.childNodes;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child.nodeType !== 1) continue;
+    const local = child.localName || String(child.nodeName).replace(/^.*:/, '');
+    if (local === 'p') continue;
+    if (local === 't') out.push(child.textContent || '');
+    else if (local === 'tab') out.push('\t');
+    else if (local === 'br' || local === 'cr') out.push('\n');
+    else collectParagraphText(child, out);
+  }
+}
+
+function parseDocumentXml(xml) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const errors = doc.getElementsByTagName('parsererror');
+  if (errors.length) throw new Error('word/document.xml 解析失败，文件可能已损坏。');
+  const paras = doc.getElementsByTagNameNS('*', 'p');
+  const lines = [];
+  for (let i = 0; i < paras.length; i++) {
+    const parts = [];
+    collectParagraphText(paras[i], parts);
+    const text = parts.join('');
+    const segments = text.split('\n');
+    for (let k = 0; k < segments.length; k++) lines.push(segments[k]);
+  }
+  return lines;
+}
+
+async function parseDocx(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const entry = findZipEntry(bytes, 'word/document.xml');
+  if (!entry) throw new Error('未在 .docx 中找到 word/document.xml，文件可能不是有效的 Word 文档。');
+  let xmlBytes;
+  const compressed = bytes.subarray(entry.dataOffset, entry.dataOffset + entry.compressedSize);
+  if (entry.method === 0) {
+    xmlBytes = compressed;
+  } else if (entry.method === 8) {
+    xmlBytes = await inflateRawAsync(compressed, entry.uncompressedSize);
+  } else {
+    throw new Error('不支持的 DOCX 压缩方式（method=' + entry.method + '）。');
+  }
+  const xml = new TextDecoder('utf-8', { fatal: false }).decode(xmlBytes);
+  return parseDocumentXml(xml);
+}
+
+/* ===================== Diff：行级 LCS + 修改配对 ===================== */
+function lcsOps(a, b, offset) {
+  const n = a.length, m = b.length;
+  const w = m + 1;
+  const dp = new Uint32Array((n + 1) * w);
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      if (a[i - 1] === b[j - 1]) dp[i * w + j] = dp[(i - 1) * w + j - 1] + 1;
+      else dp[i * w + j] = Math.max(dp[(i - 1) * w + j], dp[i * w + j - 1]);
+    }
+  }
+  const ops = [];
+  let i = n, j = m;
+  while (i > 0 && j > 0) {
+    if (a[i - 1] === b[j - 1]) {
+      ops.push({ type: 'equal', aIndex: offset + i - 1, bIndex: offset + j - 1, text: a[i - 1] });
+      i--; j--;
+    } else if (dp[(i - 1) * w + j] >= dp[i * w + j - 1]) {
+      ops.push({ type: 'delete', aIndex: offset + i - 1, text: a[i - 1] });
+      i--;
+    } else {
+      ops.push({ type: 'insert', bIndex: offset + j - 1, text: b[j - 1] });
+      j--;
+    }
+  }
+  while (i > 0) { ops.push({ type: 'delete', aIndex: offset + i - 1, text: a[i - 1] }); i--; }
+  while (j > 0) { ops.push({ type: 'insert', bIndex: offset + j - 1, text: b[j - 1] }); j--; }
+  ops.reverse();
+  return ops;
+}
+
+function computeLineOps(a, b) {
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let endA = a.length, endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA--; endB--; }
+
+  const midA = a.slice(start, endA);
+  const midB = b.slice(start, endB);
+  let midOps;
+  if (midA.length * midB.length > 4000000) {
+    // 超大文档保护：降级为整体替换，避免 O(n*m) 内存爆炸。
+    midOps = [];
+    for (let i = 0; i < midA.length; i++) midOps.push({ type: 'delete', aIndex: start + i, text: midA[i] });
+    for (let j = 0; j < midB.length; j++) midOps.push({ type: 'insert', bIndex: start + j, text: midB[j] });
+  } else {
+    midOps = lcsOps(midA, midB, start);
+  }
+
+  const ops = [];
+  for (let i = 0; i < start; i++) ops.push({ type: 'equal', aIndex: i, bIndex: i, text: a[i] });
+  for (let k = 0; k < midOps.length; k++) ops.push(midOps[k]);
+  const bShift = b.length - a.length;
+  for (let i = endA; i < a.length; i++) ops.push({ type: 'equal', aIndex: i, bIndex: i + bShift, text: a[i] });
+  return ops;
+}
+
+function buildDiffs(ops) {
+  const diffs = [];
+  let i = 0;
+  while (i < ops.length) {
+    if (ops[i].type === 'equal') { i++; continue; }
+    const dels = [], ins = [];
+    while (i < ops.length && ops[i].type !== 'equal') {
+      if (ops[i].type === 'delete') dels.push(ops[i]);
+      else ins.push(ops[i]);
+      i++;
+    }
+    const pairs = Math.min(dels.length, ins.length);
+    for (let k = 0; k < pairs; k++) {
+      diffs.push({
+        type: 'modified',
+        oldLine: dels[k].aIndex + 1,
+        newLine: ins[k].bIndex + 1,
+        oldText: dels[k].text,
+        newText: ins[k].text
+      });
+    }
+    for (let k = pairs; k < dels.length; k++) {
+      diffs.push({ type: 'removed', oldLine: dels[k].aIndex + 1, newLine: null, oldText: dels[k].text, newText: null });
+    }
+    for (let k = pairs; k < ins.length; k++) {
+      diffs.push({ type: 'added', oldLine: null, newLine: ins[k].bIndex + 1, oldText: null, newText: ins[k].text });
+    }
+  }
+  diffs.sort(function (x, y) {
+    const lx = x.newLine != null ? x.newLine : (x.oldLine != null ? x.oldLine : 0);
+    const ly = y.newLine != null ? y.newLine : (y.oldLine != null ? y.oldLine : 0);
+    return lx - ly;
+  });
+  return diffs;
+}
+
+/* ===================== Diff：字符级细粒度高亮 ===================== */
+function commonPrefix(a, b) {
+  const max = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < max && a.charAt(i) === b.charAt(i)) i++;
+  return i;
+}
+
+function commonSuffix(a, b, prefixLen) {
+  const max = Math.min(a.length, b.length) - prefixLen;
+  let i = 0;
+  while (i < max && a.charAt(a.length - 1 - i) === b.charAt(b.length - 1 - i)) i++;
+  return i;
+}
+
+function charLcs(a, b) {
+  const n = a.length, m = b.length;
+  const w = m + 1;
+  const dp = new Uint32Array((n + 1) * w);
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      if (a.charAt(i - 1) === b.charAt(j - 1)) dp[i * w + j] = dp[(i - 1) * w + j - 1] + 1;
+      else dp[i * w + j] = Math.max(dp[(i - 1) * w + j], dp[i * w + j - 1]);
+    }
+  }
+  const ops = [];
+  let i = n, j = m;
+  while (i > 0 && j > 0) {
+    if (a.charAt(i - 1) === b.charAt(j - 1)) { ops.push({ type: 'equal', ch: a.charAt(i - 1) }); i--; j--; }
+    else if (dp[(i - 1) * w + j] >= dp[i * w + j - 1]) { ops.push({ type: 'delete', ch: a.charAt(i - 1) }); i--; }
+    else { ops.push({ type: 'insert', ch: b.charAt(j - 1) }); j--; }
+  }
+  while (i > 0) { ops.push({ type: 'delete', ch: a.charAt(i - 1) }); i--; }
+  while (j > 0) { ops.push({ type: 'insert', ch: b.charAt(j - 1) }); j--; }
+  ops.reverse();
+  return ops;
+}
+
+function charDiff(oldStr, newStr) {
+  const oldText = oldStr == null ? '' : String(oldStr);
+  const newText = newStr == null ? '' : String(newStr);
+  const prefix = commonPrefix(oldText, newText);
+  const suffix = commonSuffix(oldText, newText, prefix);
+  const oldHead = oldText.slice(0, prefix);
+  const newHead = newText.slice(0, prefix);
+  const oldTail = oldText.slice(oldText.length - suffix);
+  const newTail = newText.slice(newText.length - suffix);
+  const oldMid = oldText.slice(prefix, oldText.length - suffix);
+  const newMid = newText.slice(prefix, newText.length - suffix);
+
+  let oldHtml = escapeHtml(oldHead);
+  let newHtml = escapeHtml(newHead);
+
+  if (oldMid.length === 0 && newMid.length === 0) {
+    oldHtml += escapeHtml(oldTail);
+    newHtml += escapeHtml(newTail);
+  } else if (oldMid.length * newMid.length > 20000) {
+    oldHtml += '<del>' + escapeHtml(oldMid) + '</del>' + escapeHtml(oldTail);
+    newHtml += '<ins>' + escapeHtml(newMid) + '</ins>' + escapeHtml(newTail);
+  } else {
+    const ops = charLcs(oldMid, newMid);
+    let k = 0;
+    while (k < ops.length) {
+      const type = ops[k].type;
+      let end = k;
+      while (end < ops.length && ops[end].type === type) end++;
+      const chunk = ops.slice(k, end).map(function (op) { return op.ch; }).join('');
+      if (type === 'equal') { oldHtml += escapeHtml(chunk); newHtml += escapeHtml(chunk); }
+      else if (type === 'delete') oldHtml += '<del>' + escapeHtml(chunk) + '</del>';
+      else newHtml += '<ins>' + escapeHtml(chunk) + '</ins>';
+      k = end;
+    }
+    oldHtml += escapeHtml(oldTail);
+    newHtml += escapeHtml(newTail);
+  }
+  return { oldHtml: oldHtml, newHtml: newHtml };
+}
+
+/* ===================== 渲染 ===================== */
+function computeStats() {
+  const counts = { added: 0, removed: 0, modified: 0 };
+  for (let i = 0; i < state.diffs.length; i++) counts[state.diffs[i].type]++;
+  return counts;
+}
+
+function renderStats() {
+  const c = computeStats();
+  $('statAdded').textContent = String(c.added);
+  $('statRemoved').textContent = String(c.removed);
+  $('statModified').textContent = String(c.modified);
+  $('statTotal').textContent = String(c.added + c.removed + c.modified);
+  $('stats').classList.remove('hidden');
+}
+
+function getFilteredDiffs() {
+  const q = state.search.trim().toLowerCase();
+  return state.diffs.filter(function (d) {
+    if (state.filter !== 'all' && d.type !== state.filter) return false;
+    if (!q) return true;
+    const hay = (d.oldText || '') + '\n' + (d.newText || '');
+    return hay.toLowerCase().indexOf(q) >= 0;
+  });
+}
+
+function renderDiffCard(d) {
+  const badgeText = { added: '新增', removed: '删除', modified: '修改' }[d.type] || '差异';
+  let lineNoText = '';
+  if (d.type === 'added') lineNoText = '新文档第 ' + d.newLine + ' 行';
+  else if (d.type === 'removed') lineNoText = '原文档第 ' + d.oldLine + ' 行';
+  else lineNoText = '原文档第 ' + d.oldLine + ' 行 → 新文档第 ' + d.newLine + ' 行';
+
+  let body = '';
+  if (d.type === 'added') {
+    body = '<div class="line-text added-text">' + escapeHtml(d.newText) + '</div>';
+  } else if (d.type === 'removed') {
+    body = '<div class="line-text removed-text">' + escapeHtml(d.oldText) + '</div>';
+  } else {
+    const cd = charDiff(d.oldText, d.newText);
+    body = '<div class="pair">'
+         + '<div class="pair-row"><span class="pair-label">原文</span><div class="line-text removed-text">' + cd.oldHtml + '</div></div>'
+         + '<div class="pair-row"><span class="pair-label">新文</span><div class="line-text added-text">' + cd.newHtml + '</div></div>'
+         + '</div>';
+  }
+
+  return '<div class="diff-card ' + d.type + '">'
+       + '<span class="badge">' + badgeText + '</span><span class="line-no">' + escapeHtml(lineNoText) + '</span>'
+       + body + '</div>';
+}
+
+function renderList() {
+  const container = $('diffList');
+  const items = getFilteredDiffs();
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty">没有匹配的差异条目，请调整筛选或搜索条件。</div>';
+    return;
+  }
+  const html = items.map(renderDiffCard).join('');
+  container.innerHTML = html;
+}
+
+function linesHtml(lines, hiSet, modSet) {
+  if (!lines.length) return '<div class="empty">（空文档）</div>';
+  let html = '';
+  for (let i = 0; i < lines.length; i++) {
+    const ln = i + 1;
+    let cls = 'side-line';
+    if (modSet.has(ln)) cls += ' mod';
+    else if (hiSet.has(ln)) cls += ' hi';
+    html += '<div class="' + cls + '"><span class="ln">' + ln + '</span><span class="txt">' + (escapeHtml(lines[i]) || '&nbsp;') + '</span></div>';
+  }
+  return html;
+}
+
+function renderSideBySide() {
+  const oldHi = new Set(), newHi = new Set(), oldMod = new Set(), newMod = new Set();
+  for (let i = 0; i < state.diffs.length; i++) {
+    const d = state.diffs[i];
+    if (d.oldLine != null) { (d.type === 'modified' ? oldMod : oldHi).add(d.oldLine); }
+    if (d.newLine != null) { (d.type === 'modified' ? newMod : newHi).add(d.newLine); }
+  }
+  $('sideLeft').innerHTML = linesHtml(state.oldLines, oldHi, oldMod);
+  $('sideRight').innerHTML = linesHtml(state.newLines, newHi, newMod);
+}
+
+/* ===================== 并排视图：两栏同步滚动 ===================== */
+let syncingScroll = false;
+function bindSideSyncScroll() {
+  const left = $('sideLeft');
+  const right = $('sideRight');
+  function makeSyncHandler(source, target) {
+    return function () {
+      const toggle = $('syncScrollToggle');
+      if (!toggle || !toggle.checked || syncingScroll) return;
+      const sourceRange = source.scrollHeight - source.clientHeight;
+      const targetRange = target.scrollHeight - target.clientHeight;
+      if (sourceRange <= 0 || targetRange <= 0) return;
+      // 按滚动比例同步，行数不同时也能大致对齐
+      const targetTop = (source.scrollTop / sourceRange) * targetRange;
+      if (Math.abs(target.scrollTop - targetTop) < 1) return;
+      syncingScroll = true;
+      target.scrollTop = targetTop;
+      // scroll 事件异步派发，下一帧再解锁，避免 A→B→A 循环抖动
+      requestAnimationFrame(function () { syncingScroll = false; });
+    };
+  }
+  // 只绑定一次：渲染仅替换容器内 HTML，不替换容器本身，监听器持续有效
+  left.addEventListener('scroll', makeSyncHandler(left, right));
+  right.addEventListener('scroll', makeSyncHandler(right, left));
+}
+
+function renderAll() {
+  renderList();
+  renderSideBySide();
+}
+
+function applyViewVisibility() {
+  $('listView').classList.toggle('hidden', state.view !== 'list');
+  $('sideView').classList.toggle('hidden', state.view !== 'side');
+}
+
+/* ===================== 交互绑定 ===================== */
+function setFile(slot, file) {
+  state.files[slot] = file;
+  const el = $('file' + cap(slot));
+  el.className = 'slot-file';
+  el.textContent = file.name + '（' + formatSize(file.size) + '）';
+  const kind = fileKind(file.name);
+  if (kind === 'doc-unsupported') {
+    el.classList.add('err');
+    toast('暂不支持 .doc，建议先用 LibreOffice 另存为 .docx 或 .txt。');
+  } else if (kind === 'pdf-unsupported') {
+    el.classList.add('err');
+    toast('暂不支持 .pdf，建议先用 LibreOffice 另存为 .docx 或 .txt。');
+  } else {
+    el.classList.add('ok');
+  }
+}
+
+function bindDrop(slot) {
+  const zone = $('drop' + cap(slot));
+  const input = $('input' + cap(slot));
+  zone.addEventListener('click', function () { input.click(); });
+  input.addEventListener('change', function () {
+    if (input.files && input.files[0]) setFile(slot, input.files[0]);
+  });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('drag'); });
+  });
+  zone.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(slot, e.dataTransfer.files[0]);
+    }
+  });
+}
+
+async function runCompare() {
+  if (state.busy) return;
+  if (!state.files.old || !state.files.new) {
+    showStatus('error', '请先选择「原文档」和「新文档」，再点击「开始对比」。');
+    return;
+  }
+  state.busy = true;
+  $('btnCompare').disabled = true;
+  showStatus('loading', '正在解析文档并计算差异，请稍候…');
+  await nextFrame();
+  try {
+    const results = await Promise.all([
+      readDocument(state.files.old),
+      readDocument(state.files.new)
+    ]);
+    state.oldLines = results[0];
+    state.newLines = results[1];
+    state.diffs = buildDiffs(computeLineOps(state.oldLines, state.newLines));
+    state.compared = true;
+    renderStats();
+    renderAll();
+    applyViewVisibility();
+    if (state.diffs.length === 0) showStatus('ok', '两个文档内容一致，未发现差异。');
+    else showStatus('none');
+  } catch (err) {
+    state.compared = false;
+    showStatus('error', '解析失败：' + (err && err.message ? err.message : String(err)));
+  } finally {
+    state.busy = false;
+    $('btnCompare').disabled = false;
+  }
+}
+
+function bindToolbar() {
+  $('btnCompare').addEventListener('click', runCompare);
+
+  $('viewSwitch').addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    state.view = btn.getAttribute('data-view');
+    const buttons = $('viewSwitch').querySelectorAll('button');
+    for (let i = 0; i < buttons.length; i++) buttons[i].classList.toggle('active', buttons[i] === btn);
+    applyViewVisibility();
+  });
+
+  $('filters').addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-filter]');
+    if (!btn) return;
+    state.filter = btn.getAttribute('data-filter');
+    const buttons = $('filters').querySelectorAll('button');
+    for (let i = 0; i < buttons.length; i++) buttons[i].classList.toggle('active', buttons[i] === btn);
+    if (state.compared) renderList();
+  });
+
+  $('searchBox').addEventListener('input', function (e) {
+    state.search = e.target.value;
+    if (state.compared) renderList();
+  });
+
+  $('btnCopy').addEventListener('click', copyAll);
+  $('btnExportHtml').addEventListener('click', exportHtmlReport);
+  $('btnExportTxt').addEventListener('click', exportTxt);
+  $('btnExportCsv').addEventListener('click', exportCsv);
+  $('btnPrint').addEventListener('click', function () { window.print(); });
+}
+
+/* ===================== 导出与复制 ===================== */
+function plainTextOf(items) {
+  const lines = ['文档差异清单', ''];
+  for (let i = 0; i < items.length; i++) {
+    const d = items[i];
+    if (d.type === 'added') lines.push('【新增】新文档第 ' + d.newLine + ' 行：' + d.newText);
+    else if (d.type === 'removed') lines.push('【删除】原文档第 ' + d.oldLine + ' 行：' + d.oldText);
+    else lines.push(
+      '【修改】原文档第 ' + d.oldLine + ' 行 → 新文档第 ' + d.newLine + ' 行',
+      '  原文：' + d.oldText,
+      '  新文：' + d.newText
+    );
+  }
+  return lines.join('\n');
+}
+
+function buildSaveTypes(filename, mime) {
+  const lowerName = String(filename || '').toLowerCase();
+  const lowerMime = String(mime || '').toLowerCase();
+  if (lowerName.endsWith('.csv') || lowerMime.indexOf('csv') >= 0) {
+    return [{ description: 'CSV 表格（*.csv）', accept: { 'text/csv': ['.csv'] } }];
+  }
+  if (lowerName.endsWith('.txt') || lowerMime.indexOf('plain') >= 0) {
+    return [{ description: '文本文件（*.txt）', accept: { 'text/plain': ['.txt'] } }];
+  }
+  if (lowerName.endsWith('.html') || lowerName.endsWith('.htm') || lowerMime.indexOf('html') >= 0) {
+    return [{ description: 'HTML 网页（*.html）', accept: { 'text/html': ['.html', '.htm'] } }];
+  }
+  return [];
+}
+
+/**
+ * 统一保存：优先用 File System Access API 让用户选择保存路径；
+ * 不支持 / 失败（非用户取消）时降级为 <a download>，保持原编码处理。
+ * 返回状态：'saved' 已写入所选文件 / 'canceled' 用户取消 / 'fallback' 已降级。
+ */
+async function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+
+  if (typeof window.showSaveFilePicker === 'function') {
+    try {
+      const options = { suggestedName: filename };
+      const types = buildSaveTypes(filename, mime);
+      if (types.length) options.types = types;
+      const handle = await window.showSaveFilePicker(options);
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return 'saved';
+    } catch (err) {
+      if (err && err.name === 'AbortError') return 'canceled';
+      // 其它失败（含 file:// 下的安全限制）走下方降级分支
+    }
+  }
+
+  // 降级：保持原有 <a download> 行为；content 已含 BOM / charset 声明，原样写入
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  } catch (err) {
+    /* 降级写入失败时不抛出，避免未捕获的 rejection */
+  }
+  setTimeout(function () { toast('当前环境不支持选路径，已保存到默认下载目录'); }, 0);
+  return 'fallback';
+}
+
+function requireCompared() {
+  if (!state.compared) { toast('请先完成一次对比'); return false; }
+  return true;
+}
+
+const REPORT_CSS = 'body{font-family:system-ui,"Microsoft YaHei",sans-serif;color:#1f2329;max-width:980px;margin:32px auto;padding:0 20px;line-height:1.6}'
+  + 'h1{font-size:22px} .summary{color:#646a73;margin-bottom:24px}'
+  + '.diff-card{border:1px solid #e5e6eb;border-left-width:4px;border-radius:8px;padding:12px 16px;margin:10px 0;background:#fff}'
+  + '.diff-card.added{border-left-color:#b7e2c7;background:linear-gradient(90deg,#e8f8ee 0%,#fff 30%)}'
+  + '.diff-card.removed{border-left-color:#f2c4c0;background:linear-gradient(90deg,#fdeceb 0%,#fff 30%)}'
+  + '.diff-card.modified{border-left-color:#f3d3a3;background:linear-gradient(90deg,#fff4e6 0%,#fff 30%)}'
+  + '.badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:10px;margin-right:8px;font-weight:600}'
+  + '.added .badge{background:#e8f8ee;color:#177245}.removed .badge{background:#fdeceb;color:#b32e26}.modified .badge{background:#fff4e6;color:#a85c00}'
+  + '.line-no{color:#8a9099;font-size:12px}'
+  + '.line-text{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:13px;margin-top:6px}'
+  + '.added-text{color:#177245}.removed-text{color:#b32e26}'
+  + 'ins{background:#c9f2d4;color:#0e6b2c;text-decoration:none;border-radius:2px;padding:0 1px}'
+  + 'del{background:#ffd7d3;color:#a3281f;text-decoration:line-through;border-radius:2px;padding:0 1px}'
+  + '.pair-row{display:flex;gap:10px;padding:3px 0}.pair-label{flex:0 0 34px;color:#8a9099;font-size:12px;padding-top:8px}'
+  + '.empty{text-align:center;color:#646a73;padding:24px}';
+
+async function exportHtmlReport() {
+  if (!requireCompared()) return;
+  const items = getFilteredDiffs();
+  const c = computeStats();
+  let cards = items.map(renderDiffCard).join('');
+  if (!cards) cards = '<div class="empty">没有匹配的差异条目。</div>';
+  const html = '<!DOCTYPE html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>文档差异报告</title>'
+    + '<style>' + REPORT_CSS + '</style></head><body>'
+    + '<h1>文档差异报告</h1>'
+    + '<div class="summary">统计：新增 ' + c.added + ' 处 · 删除 ' + c.removed + ' 处 · 修改 ' + c.modified
+    + ' 处 · 共 ' + (c.added + c.removed + c.modified) + ' 处差异<br>生成时间：' + escapeHtml(new Date().toLocaleString('zh-CN')) + '</div>'
+    + cards + '</body></html>';
+  const result = await downloadBlob(html, '文档差异报告.html', 'text/html;charset=utf-8');
+  if (result === 'saved') toast('HTML 报告已导出（当前筛选结果）');
+}
+
+function csvCell(value) {
+  const s = value == null ? '' : String(value);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+async function exportCsv() {
+  if (!requireCompared()) return;
+  const items = getFilteredDiffs();
+  const name = { added: '新增', removed: '删除', modified: '修改' };
+  const rows = [['类型', '原行号', '新行号', '原文', '新文']];
+  for (let i = 0; i < items.length; i++) {
+    const d = items[i];
+    rows.push([name[d.type] || '差异', d.oldLine == null ? '' : d.oldLine, d.newLine == null ? '' : d.newLine,
+               d.oldText == null ? '' : d.oldText, d.newText == null ? '' : d.newText]);
+  }
+  const csv = rows.map(function (row) { return row.map(csvCell).join(','); }).join('\r\n');
+  const result = await downloadBlob('\ufeff' + csv, '文档差异清单.csv', 'text/csv;charset=utf-8');
+  if (result === 'saved') toast('CSV 清单已导出（当前筛选结果）');
+}
+
+async function exportTxt() {
+  if (!requireCompared()) return;
+  const items = getFilteredDiffs();
+  const result = await downloadBlob('\ufeff' + plainTextOf(items), '文档差异清单.txt', 'text/plain;charset=utf-8');
+  if (result === 'saved') toast('TXT 清单已导出（当前筛选结果）');
+}
+
+async function copyAll() {
+  if (!requireCompared()) return;
+  const text = plainTextOf(getFilteredDiffs());
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('已复制全部差异到剪贴板');
+      return;
+    } catch (err) { /* 降级到 execCommand */ }
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+  document.body.removeChild(ta);
+  toast(ok ? '已复制全部差异到剪贴板' : '复制失败，请手动选择文本复制');
+}
+
+/* ===================== 初始化 ===================== */
+function init() {
+  bindDrop('old');
+  bindDrop('new');
+  bindToolbar();
+  bindSideSyncScroll();
+  showStatus('empty', '请先选择「原文档」和「新文档」，然后点击「开始对比」。');
+}
+init();
+</script>
+</body>
+</html>

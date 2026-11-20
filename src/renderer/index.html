@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文档差异对比工具</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>文档差异对比工具</h1>
+    <p class="sub">拖入两个文档 → 自动列出所有新增 / 删除 / 修改 → 可筛选、可导出、可打印。全部在本地完成，不上传任何文件，无需联网。</p>
+    <p class="hint">支持 .docx / .doc / .xlsx / .xls / .pdf / .txt / .md 等七类格式；网络映射盘文件请先映射到本地驱动器。</p>
+  </header>
+
+  <section class="inputs">
+    <div class="slot">
+      <div class="slot-title">原文档（旧版本）</div>
+      <div class="drop" id="dropOld">
+        <div class="drop-icon">&#128193;</div>
+        <div>拖拽文件到此处，或 <span class="link">点击选择</span></div>
+        <div class="slot-file" id="fileOld">未选择文件</div>
+      </div>
+      <input type="file" id="inputOld" accept=".docx,.doc,.xlsx,.xls,.pdf,.txt,.md,.csv,.text,.log" hidden>
+    </div>
+    <div class="slot">
+      <div class="slot-title">新文档（新版本）</div>
+      <div class="drop" id="dropNew">
+        <div class="drop-icon">&#128193;</div>
+        <div>拖拽文件到此处，或 <span class="link">点击选择</span></div>
+        <div class="slot-file" id="fileNew">未选择文件</div>
+      </div>
+      <input type="file" id="inputNew" accept=".docx,.doc,.xlsx,.xls,.pdf,.txt,.md,.csv,.text,.log" hidden>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <button id="btnCompare" class="primary">开始对比</button>
+    <span class="sep"></span>
+    <div class="segmented" id="viewSwitch">
+      <button type="button" data-view="list" class="active">清单视图</button>
+      <button type="button" data-view="side">并排视图</button>
+      <button type="button" data-view="cell" class="hidden">单元格差异</button>
+    </div>
+    <span class="sep"></span>
+    <input type="search" id="searchBox" placeholder="搜索差异内容…" aria-label="搜索差异内容">
+    <span class="spacer"></span>
+    <button type="button" id="btnCopy">复制全部</button>
+    <button type="button" id="btnExportHtml">导出 HTML</button>
+    <button type="button" id="btnExportTxt">导出 TXT</button>
+    <button type="button" id="btnExportCsv">导出 CSV</button>
+    <button type="button" id="btnPrint">打印</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <button type="button" data-filter="all" class="active">全部</button>
+    <button type="button" data-filter="added">仅新增</button>
+    <button type="button" data-filter="removed">仅删除</button>
+    <button type="button" data-filter="modified">仅修改</button>
+  </div>
+
+  <section id="stats" class="stats hidden">
+    <div class="stat added"><div class="stat-num" id="statAdded">0</div><div class="stat-label">新增</div></div>
+    <div class="stat removed"><div class="stat-num" id="statRemoved">0</div><div class="stat-label">删除</div></div>
+    <div class="stat modified"><div class="stat-num" id="statModified">0</div><div class="stat-label">修改</div></div>
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">共差异</div></div>
+  </section>
+
+  <section id="status" class="status"></section>
+
+  <div id="loBanner" class="banner warn hidden">
+    <div class="banner-text" id="loBannerText"></div>
+    <button type="button" id="btnLoDownload">前往 LibreOffice 官网下载</button>
+  </div>
+  <div id="pdfNotice" class="banner info hidden">
+    <div class="banner-text" id="pdfNoticeText"></div>
+  </div>
+  <div id="convertProgress" class="progress hidden">
+    <div class="progress-text" id="convertProgressText">正在转换… 0%</div>
+    <div class="progress-track"><div class="progress-fill" id="convertProgressFill"></div></div>
+  </div>
+
+  <main>
+    <div id="listView" class="hidden"><div id="diffList"></div></div>
+    <div id="sideView" class="hidden">
+      <div class="side-sync-bar">
+        <label class="side-sync-toggle"><input type="checkbox" id="syncScrollToggle" checked> 同步滚动</label>
+      </div>
+      <div class="side-grid">
+        <div class="side-col"><div class="side-head">原文档</div><div class="side-lines" id="sideLeft"></div></div>
+        <div class="side-col"><div class="side-head">新文档</div><div class="side-lines" id="sideRight"></div></div>
+      </div>
+    </div>
+    <div id="cellView" class="hidden">
+      <div class="cell-hint">逐单元格对比结果：同时检查数值与公式；工作表按名称对齐，行按内容指纹对齐。</div>
+      <div id="cellTableWrap" class="cell-table-wrap"></div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+</div>
+<script src="shared.bundle.js"></script>
+<script src="sync-scroll.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

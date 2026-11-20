@@ -1,0 +1,32 @@
+appId: com.example.docdiff.desktop
+productName: 文档差异对比工具
+# 复用 npm 已安装的 Electron，避免打包时再次从 GitHub 下载运行时。
+electronDist: node_modules/electron/dist
+asar: true
+asarUnpack:
+  - node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs
+files:
+  - src/**/*
+  - package.json
+  - "!**/test/**"
+  - "!**/tests/**"
+  - "!**/*.test.js"
+  - "!**/*.spec.js"
+  - "!**/*.map"
+directories:
+  output: dist
+# zip 默认产物名；安装版由下方 nsis.artifactName 单独覆盖。
+artifactName: "${productName}-${version}-${arch}.${ext}"
+win:
+  target:
+    - target: nsis
+      arch: x64
+    - target: zip
+      arch: x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  language: "2052"
+  artifactName: "文档差异对比工具-安装版-${version}-x64.exe"
+npmRebuild: false
