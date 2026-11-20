@@ -4,7 +4,7 @@
  * 无界面端到端验收：加载真实 index.html（注入桩 API），验证
  *   1) 两份 docx（中文/空格路径）→ 文本差异清单；
  *   2) 两份 xlsx → 单元格差异表 + 第三 Tab 可见；
- *   3) 原生导出链路（saveFile → writeExport）；
+ *   3) 原生导出链路（saveFile → writeExport，默认文件名按两份源文件生成）；
  *   4) 扫描 PDF 无文本层 → 中文提示横幅；
  *   5) 真实 .doc（中文/空格路径，word-extractor 直读）→ 文本差异清单；
  *   6) 混合格式（docx vs xlsx）→ 强制通用清单、隐藏单元格 Tab；
@@ -81,9 +81,21 @@ const scenarioScript = `(async function () {
     newPathHasChineseAndSpace: /中文 路径 测试/.test(state.files.new.path)
   };
 
-  // 3) 原生导出链路
+  // 3) 原生导出链路：默认文件名应使用两份源文件主名
   await exportCsv();
-  results.export = window.__e2eWrites[window.__e2eWrites.length - 1] || null;
+  const exportWrite = window.__e2eWrites[window.__e2eWrites.length - 1] || null;
+  results.export = exportWrite;
+  results.exportNames = {
+    csv: nodePath.basename(exportWrite ? exportWrite.path : '').replace(/^__e2e_out_/, '')
+  };
+  await exportTxt();
+  results.exportNames.txt = nodePath.basename(
+    (window.__e2eWrites[window.__e2eWrites.length - 1] || {}).path || ''
+  ).replace(/^__e2e_out_/, '');
+  await exportHtmlReport();
+  results.exportNames.html = nodePath.basename(
+    (window.__e2eWrites[window.__e2eWrites.length - 1] || {}).path || ''
+  ).replace(/^__e2e_out_/, '');
 
   // 4) 扫描 PDF 无文本层
   setFile('old', meta(window.__e2ePaths.docxOld));

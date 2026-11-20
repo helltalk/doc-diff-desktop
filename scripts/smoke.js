@@ -23,6 +23,10 @@ app.whenReady().then(function () {
       '  title: document.title,',
       '  api: typeof window.electronAPI,',
       '  methods: window.electronAPI ? Object.keys(window.electronAPI) : [],',
+      '  naming: typeof window.exportNaming,',
+      '  sampleExportName: window.exportNaming',
+      '    ? window.exportNaming.buildExportFileName("旧.docx", "新.docx", "差异清单.csv")',
+      '    : null,',
       '  hasCompareButton: !!document.getElementById("btnCompare"),',
       '  hasDiffList: !!document.getElementById("diffList")',
       '})'

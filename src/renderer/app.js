@@ -5,6 +5,7 @@ const api = window.electronAPI;
 const diffCore = window.diffCore;
 const docParsers = window.docParsers;
 const cellEngine = window.cellDiff;
+const exportNaming = window.exportNaming;
 const APP_ERR = window.appConstants.ERR;
 const SAVE_FILTERS = window.appConstants.SAVE_FILTERS;
 
@@ -125,6 +126,15 @@ function baseName(filePath) {
   const text = String(filePath || '');
   const slash = Math.max(text.lastIndexOf('/'), text.lastIndexOf('\\'));
   return slash >= 0 ? text.slice(slash + 1) : text;
+}
+
+/** 导出文件名：按两份上传文件的主文件名生成，归档时可直接对应源文件。 */
+function exportFileName(suffix) {
+  return exportNaming.buildExportFileName(
+    state.files.old && (state.files.old.name || state.files.old.path),
+    state.files.new && (state.files.new.name || state.files.new.path),
+    suffix
+  );
 }
 
 /** 结构化克隆的 Uint8Array → ArrayBuffer（供 parseDocx 使用）。 */
@@ -683,7 +693,7 @@ async function exportHtmlReport() {
     + ' 处 · 共 ' + (c.added + c.removed + c.modified) + ' 处差异<br>生成时间：'
     + escapeHtml(new Date().toLocaleString('zh-CN')) + '</div>'
     + body + '</body></html>';
-  if (await saveNative(html, '文档差异报告.html', 'utf8')) toast('HTML 报告已导出（当前筛选结果）');
+  if (await saveNative(html, exportFileName('差异报告.html'), 'utf8')) toast('HTML 报告已导出（当前筛选结果）');
 }
 
 function csvCell(value) {
@@ -710,7 +720,7 @@ async function exportCsv() {
         CHANGE_LABEL[d.changeKind] || ''
       ]);
     }
-    filename = '单元格差异清单.csv';
+    filename = exportFileName('单元格差异清单.csv');
   } else {
     rows = [['类型', '原行号', '新行号', '原文', '新文']];
     for (const d of getFilteredDiffs()) {
@@ -719,7 +729,7 @@ async function exportCsv() {
         d.oldText == null ? '' : d.oldText, d.newText == null ? '' : d.newText
       ]);
     }
-    filename = '文档差异清单.csv';
+    filename = exportFileName('差异清单.csv');
   }
   const csv = rows.map(function (row) { return row.map(csvCell).join(','); }).join('\r\n');
   if (await saveNative(csv, filename, 'utf8bom')) toast('CSV 清单已导出（当前筛选结果）');
@@ -730,7 +740,7 @@ async function exportTxt() {
   const text = state.mode === 'sheet'
     ? plainTextOfCells(getFilteredCellDiffs())
     : plainTextOf(getFilteredDiffs());
-  if (await saveNative(text, '文档差异清单.txt', 'utf8bom')) toast('TXT 清单已导出（当前筛选结果）');
+  if (await saveNative(text, exportFileName('差异清单.txt'), 'utf8bom')) toast('TXT 清单已导出（当前筛选结果）');
 }
 
 async function copyAll() {

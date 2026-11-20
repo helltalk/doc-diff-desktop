@@ -15,10 +15,12 @@ const diffCore = require('../shared/diff-core');
 const docParsers = require('../shared/doc-parsers');
 const cellDiff = require('../shared/cell-diff');
 const constants = require('../shared/constants');
+const exportNaming = require('../shared/export-naming');
 
 window.diffCore = Object.freeze(diffCore);
 window.docParsers = Object.freeze(docParsers);
 window.cellDiff = Object.freeze(cellDiff);
+window.exportNaming = Object.freeze(exportNaming);
 // 错误码与保存过滤器沿用唯一定义处，避免渲染层硬编码 'E_XXX' 字面量。
 window.appConstants = Object.freeze({
   ERR: constants.ERR,

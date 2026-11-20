@@ -218,6 +218,32 @@ function formatSize(n) {
   return (bytes / 1024 / 1024).toFixed(2) + ' MB';
 }
 
+/* 导出文件名：按两份源文件的主文件名生成，归档时可直接对应源文件。 */
+const EXPORT_ILLEGAL_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
+function safeExportStem(name, maxLength) {
+  let text = String(name == null ? '' : name).trim();
+  const slash = Math.max(text.lastIndexOf('/'), text.lastIndexOf('\\'));
+  if (slash >= 0) text = text.slice(slash + 1);
+  const dot = text.lastIndexOf('.');
+  if (dot > 0) text = text.slice(0, dot);
+  text = text.replace(EXPORT_ILLEGAL_CHARS, '_').replace(/\s+/g, ' ').trim();
+  text = text.replace(/[. ]+$/, '');
+  if (!text) text = '未命名';
+  if (text.length > maxLength) text = text.slice(0, Math.max(1, maxLength - 1)) + '~';
+  return text;
+}
+function exportFileName(suffix) {
+  const maxLength = 120;
+  const tail = '_' + String(suffix || '差异清单');
+  const budget = Math.max(20, maxLength - tail.length);
+  const each = Math.max(8, Math.floor((budget - 4) / 2));
+  const oldStem = safeExportStem(state.files.old && (state.files.old.name || state.files.old.path), each);
+  const newStem = safeExportStem(state.files.new && (state.files.new.name || state.files.new.path), each);
+  const pair = oldStem === newStem ? oldStem : oldStem + '_vs_' + newStem;
+  if (pair.length + tail.length <= maxLength) return pair + tail;
+  return pair.slice(0, Math.max(1, maxLength - tail.length)) + tail;
+}
+
 function nextFrame() {
   return new Promise(function (resolve) {
     requestAnimationFrame(function () { requestAnimationFrame(resolve); });
@@ -1060,7 +1086,7 @@ async function exportHtmlReport() {
     + '<div class="summary">统计：新增 ' + c.added + ' 处 · 删除 ' + c.removed + ' 处 · 修改 ' + c.modified
     + ' 处 · 共 ' + (c.added + c.removed + c.modified) + ' 处差异<br>生成时间：' + escapeHtml(new Date().toLocaleString('zh-CN')) + '</div>'
     + cards + '</body></html>';
-  const result = await downloadBlob(html, '文档差异报告.html', 'text/html;charset=utf-8');
+  const result = await downloadBlob(html, exportFileName('差异报告.html'), 'text/html;charset=utf-8');
   if (result === 'saved') toast('HTML 报告已导出（当前筛选结果）');
 }
 
@@ -1080,14 +1106,14 @@ async function exportCsv() {
                d.oldText == null ? '' : d.oldText, d.newText == null ? '' : d.newText]);
   }
   const csv = rows.map(function (row) { return row.map(csvCell).join(','); }).join('\r\n');
-  const result = await downloadBlob('\ufeff' + csv, '文档差异清单.csv', 'text/csv;charset=utf-8');
+  const result = await downloadBlob('\ufeff' + csv, exportFileName('差异清单.csv'), 'text/csv;charset=utf-8');
   if (result === 'saved') toast('CSV 清单已导出（当前筛选结果）');
 }
 
 async function exportTxt() {
   if (!requireCompared()) return;
   const items = getFilteredDiffs();
-  const result = await downloadBlob('\ufeff' + plainTextOf(items), '文档差异清单.txt', 'text/plain;charset=utf-8');
+  const result = await downloadBlob('\ufeff' + plainTextOf(items), exportFileName('差异清单.txt'), 'text/plain;charset=utf-8');
   if (result === 'saved') toast('TXT 清单已导出（当前筛选结果）');
 }
 

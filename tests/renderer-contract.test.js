@@ -23,6 +23,7 @@ test('shared.bundle.js 暴露渲染层所需全部命名空间与方法', functi
   assert.equal(typeof win.diffCore, 'object');
   assert.equal(typeof win.docParsers, 'object');
   assert.equal(typeof win.cellDiff, 'object');
+  assert.equal(typeof win.exportNaming, 'object');
   assert.equal(typeof win.appConstants, 'object');
 
   for (const name of ['computeLineOps', 'buildDiffs', 'charDiff', 'escapeHtml']) {
@@ -33,6 +34,7 @@ test('shared.bundle.js 暴露渲染层所需全部命名空间与方法', functi
   }
   assert.equal(typeof win.cellDiff.diff, 'function');
   assert.equal(typeof win.cellDiff.alignSheets, 'function');
+  assert.equal(typeof win.exportNaming.buildExportFileName, 'function');
   assert.equal(typeof win.appConstants.ERR.PDF_NO_TEXT, 'string');
   assert.equal(typeof win.appConstants.ERR.LO_MISSING, 'string');
   assert.ok(Array.isArray(win.appConstants.SAVE_FILTERS.csv));
@@ -62,7 +64,7 @@ test('app.js 中出现的 window 命名空间均由 bundle 或 preload 提供', 
   const appJs = fs.readFileSync(path.join(rendererDir, 'app.js'), 'utf8');
   const namespaces = Array.from(appJs.matchAll(/window\.([A-Za-z_$][\w$]*)/g))
     .map(function (m) { return m[1]; });
-  const allowed = new Set(['electronAPI', 'diffCore', 'docParsers', 'cellDiff', 'appConstants', 'print']);
+  const allowed = new Set(['electronAPI', 'diffCore', 'docParsers', 'cellDiff', 'exportNaming', 'appConstants', 'print']);
   const unknown = Array.from(new Set(namespaces)).filter(function (name) { return !allowed.has(name); });
   assert.deepEqual(unknown, []);
 });
@@ -88,6 +90,17 @@ test('app.js 中 doc/xls 不再走 LibreOffice 转换，改为 parseDoc / parseX
   assert.ok(/api\.parseXlsx\(\{ path: meta\.path, meta: meta \}\)/.test(appJs), 'xlsx/xls 应直走 parseXlsx');
   assert.ok(/kind === 'xlsx' \|\| kind === 'xls'/.test(appJs), 'xls 应与 xlsx 共用单元格解析分支');
   assert.ok(/kind === 'doc'/.test(appJs), 'doc 应有独立文本解析分支');
+});
+
+test('导出文件名按两份源文件生成，不再使用固定通用名', function () {
+  const appJs = fs.readFileSync(path.join(rendererDir, 'app.js'), 'utf8');
+  assert.ok(/function exportFileName\(suffix\)/.test(appJs), '缺少导出文件名辅助函数');
+  assert.ok(/exportNaming\.buildExportFileName\(/.test(appJs), '应调用共享命名函数');
+  assert.ok(/exportFileName\('差异清单\.txt'\)/.test(appJs), 'TXT 应使用源文件命名');
+  assert.ok(/exportFileName\('差异清单\.csv'\)/.test(appJs), 'CSV 应使用源文件命名');
+  assert.ok(/exportFileName\('差异报告\.html'\)/.test(appJs), 'HTML 应使用源文件命名');
+  assert.ok(!/saveNative\([^,]+,\s*'文档差异清单/.test(appJs), '不应再写死通用清单文件名');
+  assert.ok(!/saveNative\([^,]+,\s*'文档差异报告/.test(appJs), '不应再写死通用报告文件名');
 });
 
 test('E2E 桩 readBuffer 只接受字符串路径，不再掩盖真实 preload 契约', function () {

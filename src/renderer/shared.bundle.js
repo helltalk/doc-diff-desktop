@@ -862,14 +862,52 @@
     }
   });
 
+  // src/shared/export-naming.js
+  var require_export_naming = __commonJS({
+    "src/shared/export-naming.js"(exports, module) {
+      "use strict";
+      var ILLEGAL_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
+      var DEFAULT_MAX_LENGTH = 120;
+      var DEFAULT_STEM = "\u672A\u547D\u540D";
+      function safeStem(name, maxLength) {
+        let text = String(name == null ? "" : name).trim();
+        const slash = Math.max(text.lastIndexOf("/"), text.lastIndexOf("\\"));
+        if (slash >= 0) text = text.slice(slash + 1);
+        const dot = text.lastIndexOf(".");
+        if (dot > 0) text = text.slice(0, dot);
+        text = text.replace(ILLEGAL_CHARS, "_").replace(/\s+/g, " ").trim();
+        text = text.replace(/[. ]+$/, "");
+        if (!text) text = DEFAULT_STEM;
+        if (text.length > maxLength) {
+          text = text.slice(0, Math.max(1, maxLength - 1)) + "~";
+        }
+        return text;
+      }
+      function buildExportFileName(oldName, newName, suffix, options) {
+        const maxLength = options && Number(options.maxLength) > 0 ? Math.floor(Number(options.maxLength)) : DEFAULT_MAX_LENGTH;
+        const tail = "_" + String(suffix == null || suffix === "" ? "\u5DEE\u5F02\u6E05\u5355" : suffix);
+        const budget = Math.max(20, maxLength - tail.length);
+        const each = Math.max(8, Math.floor((budget - 4) / 2));
+        const oldStem = safeStem(oldName, each);
+        const newStem = safeStem(newName, each);
+        const pair = oldStem === newStem ? oldStem : oldStem + "_vs_" + newStem;
+        if (pair.length + tail.length <= maxLength) return pair + tail;
+        return pair.slice(0, Math.max(1, maxLength - tail.length)) + tail;
+      }
+      module.exports = { buildExportFileName, safeStem };
+    }
+  });
+
   // src/renderer/shared-entry.js
   var diffCore = require_diff_core();
   var docParsers = require_doc_parsers();
   var cellDiff = require_cell_diff();
   var constants = require_constants();
+  var exportNaming = require_export_naming();
   window.diffCore = Object.freeze(diffCore);
   window.docParsers = Object.freeze(docParsers);
   window.cellDiff = Object.freeze(cellDiff);
+  window.exportNaming = Object.freeze(exportNaming);
   window.appConstants = Object.freeze({
     ERR: constants.ERR,
     FILE_FILTERS: constants.FILE_FILTERS,
