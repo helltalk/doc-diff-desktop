@@ -4,7 +4,11 @@
 
 > 本项目同时收录了前身——零依赖单文件网页版工具，位于 [`web-version/`](web-version/) 目录（双击 `文档差异对比工具.html` 即可离线使用，支持 docx/txt/md）。桌面版在它基础上扩展了格式与原生系统对话框。
 >
-> 安装包（130MB exe / 169MB zip）因超过 GitHub 单文件 100MB 限制，作为 **Releases 附件** 发布，不在仓库内。请到本仓库 [Releases](../../releases) 页面下载；仓库内源码可用 `npm run dist:win` 自行构建。
+> 安装包（130MB exe / 169MB zip）因超过 GitHub 单文件 100MB 限制，作为 **Releases 附件** 发布，不在仓库内。请到本仓库 [Releases 页面](https://github.com/helltalk/doc-diff-desktop/releases) 下载，或直接下载：
+> - [安装版 exe（130MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-desktop-installer-1.0.0-x64.exe)
+> - [免安装版 zip（169MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-desktop-portable-1.0.0-x64.zip)
+>
+> 仓库内源码可用 `npm run dist:win` 自行构建。
 
 > ⚠️ **首次安装请注意（本版未做代码签名）**
 > Windows 安装 `.exe` 时可能弹出蓝色提示「Windows 已保护你的电脑 / 未知发布者」。
