@@ -218,8 +218,15 @@ function formatSize(n) {
   return (bytes / 1024 / 1024).toFixed(2) + ' MB';
 }
 
-/* 导出文件名：按两份源文件的主文件名生成，归档时可直接对应源文件。 */
+/* 导出文件名：按两份源文件生成；仅版本不同时只保留公共主体名。 */
 const EXPORT_ILLEGAL_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
+const EXPORT_TOKEN_RE = /[\u3400-\u9FFF]+|[A-Za-z]+|\d+(?:\.\d+)*/g;
+const EXPORT_VERSION_LABELS = new Set([
+  'rev', 'revision', 'ver', 'version', 'v', 'r', 'rc', 'beta', 'alpha', 'final', 'draft', 'release',
+  '版', '版本', '修订', '修订版', '终版', '最终版', '定稿', '草稿', '初稿', '发布版',
+  '正式版', '预览版', '测试版', '第'
+]);
+const EXPORT_TRAILING_SEPARATORS = /[\s\-_—()（）\[\]【】.,;，。；:：]+$/;
 function safeExportStem(name, maxLength) {
   let text = String(name == null ? '' : name).trim();
   const slash = Math.max(text.lastIndexOf('/'), text.lastIndexOf('\\'));
@@ -232,16 +239,65 @@ function safeExportStem(name, maxLength) {
   if (text.length > maxLength) text = text.slice(0, Math.max(1, maxLength - 1)) + '~';
   return text;
 }
+function exportTokens(text) {
+  const tokens = [];
+  const re = new RegExp(EXPORT_TOKEN_RE.source, 'g');
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    tokens.push({ text: match[0], normalized: match[0].toLowerCase(), start: match.index,
+                  end: match.index + match[0].length });
+  }
+  return tokens;
+}
+function isVersionishRest(rest) {
+  const tokens = exportTokens(rest);
+  if (!tokens.length) return true;
+  return tokens.every(function (token) {
+    return EXPORT_VERSION_LABELS.has(token.normalized) || /^\d+(?:\.\d+)*$/.test(token.text);
+  });
+}
+function trimExportVersionLabels(prefix) {
+  let end = prefix.length;
+  let removed = false;
+  const tokens = exportTokens(prefix);
+  while (tokens.length) {
+    const last = tokens[tokens.length - 1];
+    if (!EXPORT_VERSION_LABELS.has(last.normalized)) break;
+    end = last.start;
+    removed = true;
+    tokens.pop();
+  }
+  if (!removed) return prefix;
+  return prefix.slice(0, end).replace(EXPORT_TRAILING_SEPARATORS, '').trim();
+}
+function chooseExportPair(oldStem, newStem) {
+  if (oldStem === newStem) return oldStem;
+  const oldTokens = exportTokens(oldStem);
+  const newTokens = exportTokens(newStem);
+  let common = 0;
+  while (common < oldTokens.length && common < newTokens.length
+         && oldTokens[common].normalized === newTokens[common].normalized) common += 1;
+  if (!common) return oldStem + '_vs_' + newStem;
+  const oldEnd = oldTokens[common - 1].end;
+  const newEnd = newTokens[common - 1].end;
+  const oldRest = oldStem.slice(oldEnd);
+  const newRest = newStem.slice(newEnd);
+  const prefixEnd = exportTokens(oldRest).length === 0 ? oldStem.length : oldEnd;
+  const prefixRaw = oldStem.slice(0, prefixEnd);
+  if (!isVersionishRest(oldRest) || !isVersionishRest(newRest)) {
+    return oldStem + '_vs_' + newStem;
+  }
+  return trimExportVersionLabels(prefixRaw) || (oldStem + '_vs_' + newStem);
+}
 function exportFileName(suffix) {
   const maxLength = 120;
   const tail = '_' + String(suffix || '差异清单');
-  const budget = Math.max(20, maxLength - tail.length);
-  const each = Math.max(8, Math.floor((budget - 4) / 2));
-  const oldStem = safeExportStem(state.files.old && (state.files.old.name || state.files.old.path), each);
-  const newStem = safeExportStem(state.files.new && (state.files.new.name || state.files.new.path), each);
-  const pair = oldStem === newStem ? oldStem : oldStem + '_vs_' + newStem;
-  if (pair.length + tail.length <= maxLength) return pair + tail;
-  return pair.slice(0, Math.max(1, maxLength - tail.length)) + tail;
+  const maxStemLength = Math.max(20, maxLength - tail.length);
+  const oldStem = safeExportStem(state.files.old && (state.files.old.name || state.files.old.path), 1000);
+  const newStem = safeExportStem(state.files.new && (state.files.new.name || state.files.new.path), 1000);
+  let pair = chooseExportPair(oldStem, newStem);
+  if (pair.length > maxStemLength - 1) pair = pair.slice(0, Math.max(1, maxStemLength - 1)) + '~';
+  return pair + tail;
 }
 
 function nextFrame() {

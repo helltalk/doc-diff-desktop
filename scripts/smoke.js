@@ -27,6 +27,10 @@ app.whenReady().then(function () {
       '  sampleExportName: window.exportNaming',
       '    ? window.exportNaming.buildExportFileName("旧.docx", "新.docx", "差异清单.csv")',
       '    : null,',
+      '  revExportName: window.exportNaming',
+      '    ? window.exportNaming.buildExportFileName("OTM 7000 K产品技术要求 rev 1.4.docx",',
+      '        "OTM 7000 K产品技术要求 rev 1.5.docx", "差异清单.txt")',
+      '    : null,',
       '  hasCompareButton: !!document.getElementById("btnCompare"),',
       '  hasDiffList: !!document.getElementById("diffList")',
       '})'

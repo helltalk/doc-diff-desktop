@@ -21,7 +21,7 @@ test('同主名不同格式：不重复拼接，直接加差异后缀', function
 test('支持完整路径，并去掉 Windows 非法字符与结尾空格/点', function () {
   assert.equal(
     buildExportFileName('C:\\归档\\2026 预算(终).xlsx', '\\\\nas\\share\\2026 预算(终) v2.xls', '差异清单.csv'),
-    '2026 预算(终)_vs_2026 预算(终) v2_差异清单.csv'
+    '2026 预算(终)_差异清单.csv'
   );
   assert.equal(safeStem('C:\\归档\\a:b?*.txt', 50), 'a_b__');
 });
@@ -33,6 +33,31 @@ test('导出文件名总长度受限，超长主文件名会截断', function ()
   assert.ok(result.length <= 120, '实际长度：' + result.length);
   assert.ok(result.endsWith('_差异清单.csv'));
   assert.ok(result.indexOf('~') > 0, '截断应保留 ~ 标记');
+});
+
+test('仅 rev 版本不同：只保留公共主体名，不带 rev 与版本号', function () {
+  assert.equal(
+    buildExportFileName('OTM 7000 K产品技术要求 rev 1.4.docx', 'OTM 7000 K产品技术要求 rev 1.5.docx', '差异清单.txt'),
+    'OTM 7000 K产品技术要求_差异清单.txt'
+  );
+  assert.equal(
+    buildExportFileName('产品技术要求v1.4.pdf', '产品技术要求v1.5.pdf', '差异清单.txt'),
+    '产品技术要求_差异清单.txt'
+  );
+});
+
+test('版本标记词不同但主体相同：同样只保留主体名', function () {
+  assert.equal(
+    buildExportFileName('产品技术要求-终版.docx', '产品技术要求-发布版.docx', '差异清单.txt'),
+    '产品技术要求_差异清单.txt'
+  );
+});
+
+test('非版本差异仍保留两侧文件名，避免丢失区分信息', function () {
+  assert.equal(
+    buildExportFileName('型号7000 优化.xlsx', '型号7000 最终.xlsx', '差异清单.csv'),
+    '型号7000 优化_vs_型号7000 最终_差异清单.csv'
+  );
 });
 
 test('缺失文件名时仍生成可用的默认名', function () {

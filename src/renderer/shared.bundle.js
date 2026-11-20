@@ -869,6 +869,36 @@
       var ILLEGAL_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
       var DEFAULT_MAX_LENGTH = 120;
       var DEFAULT_STEM = "\u672A\u547D\u540D";
+      var TOKEN_RE = /[\u3400-\u9FFF]+|[A-Za-z]+|\d+(?:\.\d+)*/g;
+      var VERSION_LABELS = /* @__PURE__ */ new Set([
+        "rev",
+        "revision",
+        "ver",
+        "version",
+        "v",
+        "r",
+        "rc",
+        "beta",
+        "alpha",
+        "final",
+        "draft",
+        "release",
+        "\u7248",
+        "\u7248\u672C",
+        "\u4FEE\u8BA2",
+        "\u4FEE\u8BA2\u7248",
+        "\u7EC8\u7248",
+        "\u6700\u7EC8\u7248",
+        "\u5B9A\u7A3F",
+        "\u8349\u7A3F",
+        "\u521D\u7A3F",
+        "\u53D1\u5E03\u7248",
+        "\u6B63\u5F0F\u7248",
+        "\u9884\u89C8\u7248",
+        "\u6D4B\u8BD5\u7248",
+        "\u7B2C"
+      ]);
+      var TRAILING_SEPARATORS = /[\s\-_—()（）\[\]【】.,;，。；:：]+$/;
       function safeStem(name, maxLength) {
         let text = String(name == null ? "" : name).trim();
         const slash = Math.max(text.lastIndexOf("/"), text.lastIndexOf("\\"));
@@ -883,18 +913,73 @@
         }
         return text;
       }
+      function tokenize(text) {
+        const tokens = [];
+        const re = new RegExp(TOKEN_RE.source, "g");
+        let match;
+        while ((match = re.exec(text)) !== null) {
+          tokens.push({
+            text: match[0],
+            normalized: match[0].toLowerCase(),
+            start: match.index,
+            end: match.index + match[0].length
+          });
+        }
+        return tokens;
+      }
+      function isVersionish(rest) {
+        const tokens = tokenize(rest);
+        if (tokens.length === 0) return true;
+        return tokens.every(function(token) {
+          return VERSION_LABELS.has(token.normalized) || /^\d+(?:\.\d+)*$/.test(token.text);
+        });
+      }
+      function trimTrailingVersionLabels(prefix) {
+        let end = prefix.length;
+        let removed = false;
+        const tokens = tokenize(prefix);
+        while (tokens.length > 0) {
+          const last = tokens[tokens.length - 1];
+          if (!VERSION_LABELS.has(last.normalized)) break;
+          end = last.start;
+          removed = true;
+          tokens.pop();
+        }
+        if (!removed) return prefix;
+        return prefix.slice(0, end).replace(TRAILING_SEPARATORS, "").trim();
+      }
+      function chooseStemPair(oldStem, newStem) {
+        if (oldStem === newStem) return oldStem;
+        const oldTokens = tokenize(oldStem);
+        const newTokens = tokenize(newStem);
+        let common = 0;
+        while (common < oldTokens.length && common < newTokens.length && oldTokens[common].normalized === newTokens[common].normalized) {
+          common += 1;
+        }
+        if (common === 0) return oldStem + "_vs_" + newStem;
+        const oldEnd = oldTokens[common - 1].end;
+        const newEnd = newTokens[common - 1].end;
+        const oldRest = oldStem.slice(oldEnd);
+        const newRest = newStem.slice(newEnd);
+        const prefixEnd = tokenize(oldRest).length === 0 ? oldStem.length : oldEnd;
+        const prefixRaw = oldStem.slice(0, prefixEnd);
+        if (!isVersionish(oldRest) || !isVersionish(newRest)) return oldStem + "_vs_" + newStem;
+        const prefix = trimTrailingVersionLabels(prefixRaw);
+        return prefix || oldStem + "_vs_" + newStem;
+      }
       function buildExportFileName(oldName, newName, suffix, options) {
         const maxLength = options && Number(options.maxLength) > 0 ? Math.floor(Number(options.maxLength)) : DEFAULT_MAX_LENGTH;
         const tail = "_" + String(suffix == null || suffix === "" ? "\u5DEE\u5F02\u6E05\u5355" : suffix);
-        const budget = Math.max(20, maxLength - tail.length);
-        const each = Math.max(8, Math.floor((budget - 4) / 2));
-        const oldStem = safeStem(oldName, each);
-        const newStem = safeStem(newName, each);
-        const pair = oldStem === newStem ? oldStem : oldStem + "_vs_" + newStem;
-        if (pair.length + tail.length <= maxLength) return pair + tail;
-        return pair.slice(0, Math.max(1, maxLength - tail.length)) + tail;
+        const maxStemLength = Math.max(20, maxLength - tail.length);
+        const oldStem = safeStem(oldName, 1e3);
+        const newStem = safeStem(newName, 1e3);
+        let pair = chooseStemPair(oldStem, newStem);
+        if (pair.length > maxStemLength - 1) {
+          pair = pair.slice(0, Math.max(1, maxStemLength - 1)) + "~";
+        }
+        return pair + tail;
       }
-      module.exports = { buildExportFileName, safeStem };
+      module.exports = { buildExportFileName, safeStem, chooseStemPair };
     }
   });
 
