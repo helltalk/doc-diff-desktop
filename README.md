@@ -2,11 +2,12 @@
 
 本地离线的 Windows 桌面应用，对比 **docx / doc / xlsx / xls / pdf / txt / md** 七类文档，列出全部新增 / 删除 / 修改，支持筛选、搜索、三种视图、导出与打印。**文件不上传、无需联网、全格式开箱即用——不需要安装 LibreOffice 或任何外部软件。**
 
-> 本项目同时收录了前身——零依赖单文件网页版工具，位于 [`web-version/`](web-version/) 目录（双击 `文档差异对比工具.html` 即可离线使用，支持 docx/txt/md）。桌面版在它基础上扩展了格式与原生系统对话框。
+> 本项目同时收录了前身——零依赖单文件网页版工具，位于 [`web-version/`](web-version/) 目录（双击 `文档差异对比工具.html` 即可离线使用，支持 docx/txt/md），也可直接下载 [网页版单文件 HTML](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-tool-web.html)。桌面版在它基础上扩展了格式与原生系统对话框。
 >
 > 安装包（130MB exe / 169MB zip）因超过 GitHub 单文件 100MB 限制，作为 **Releases 附件** 发布，不在仓库内。请到本仓库 [Releases 页面](https://github.com/helltalk/doc-diff-desktop/releases) 下载，或直接下载：
 > - [安装版 exe（130MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-desktop-installer-1.0.0-x64.exe)
 > - [免安装版 zip（169MB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-desktop-portable-1.0.0-x64.zip)
+> - [网页版 HTML（约 51KB）](https://github.com/helltalk/doc-diff-desktop/releases/download/v1.0.0/doc-diff-tool-web.html)
 >
 > 仓库内源码可用 `npm run dist:win` 自行构建。
 
