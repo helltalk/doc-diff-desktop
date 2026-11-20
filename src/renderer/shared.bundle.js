@@ -798,6 +798,7 @@
         FILE_READ_BUFFER: "file:read-buffer",
         CONVERT_RUN: "convert:run",
         PARSE_XLSX: "parse:xlsx",
+        PARSE_DOC: "parse:doc",
         PARSE_PDF: "parse:pdf",
         LIBREOFFICE_CHECK: "libreoffice:check",
         EXPORT_WRITE: "export:write",

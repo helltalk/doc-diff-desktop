@@ -1,6 +1,6 @@
 # 文档差异对比工具（桌面版）
 
-本地离线的 Windows 桌面应用，对比 **docx / doc / xlsx / xls / pdf / txt / md** 七类文档，列出全部新增 / 删除 / 修改，支持筛选、搜索、三种视图、导出与打印。**文件不上传、无需联网**。
+本地离线的 Windows 桌面应用，对比 **docx / doc / xlsx / xls / pdf / txt / md** 七类文档，列出全部新增 / 删除 / 修改，支持筛选、搜索、三种视图、导出与打印。**文件不上传、无需联网、全格式开箱即用——不需要安装 LibreOffice 或任何外部软件。**
 
 > 本项目同时收录了前身——零依赖单文件网页版工具，位于 [`web-version/`](web-version/) 目录（双击 `文档差异对比工具.html` 即可离线使用，支持 docx/txt/md）。桌面版在它基础上扩展了格式与原生系统对话框。
 >
@@ -31,26 +31,26 @@
 
 > 两张方式功能完全一致。免安装版同样可能触发 SmartScreen / Defender 提示，处理方式相同。
 
-## 二、LibreOffice 依赖（仅 `.doc` / `.xls` 需要）
+## 二、零外部依赖，全格式开箱即用
 
-- `.docx` / `.xlsx` / `.pdf` / `.txt` / `.md` 等格式**不需要** LibreOffice，开箱即用。
-- 对比老式二进制 `.doc` / `.xls` 时，需在**本机安装 LibreOffice**（免费，官网 <https://www.libreoffice.org/>）。应用会先检测：未安装时显示中文横幅和「前往 LibreOffice 官网下载」按钮；已安装时自动无头转换（进度条显示百分比），转换完成后继续对比。
-- 应用检测 LibreOffice 的位置顺序：
-  1. 注册表卸载项 `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`、`HKLM\SOFTWARE\WOW6432Node\...\Uninstall`、`HKCU\SOFTWARE\...\Uninstall` 中的 `InstallLocation` / `DisplayIcon`；
-  2. 固定路径 `C:\Program Files\LibreOffice\program\soffice.exe`、`C:\Program Files (x86)\LibreOffice\program\soffice.exe`；
-  3. `PATH` 环境变量中的 `soffice.exe` / `soffice`。
-- 转换使用独立临时目录与隔离 profile，不修改原始文件；单次转换超过 60 秒自动中止。
+桌面版内置全部解析器，**不再需要、也不再检测 LibreOffice**，不再弹出安装提示或显示转换进度条：
+
+- `.doc`（老式 OLE2 二进制）由主进程 `word-extractor` 纯 JS 直提正文（中文、Tab、换行原样保留）；
+- `.xls` 与 `.xlsx` 一样由主进程 SheetJS 直接读取二进制，逐单元格取值 / 公式 / 类型，不需要先转成 `.xlsx`；
+- `.docx` / `.txt` / `.md` / `.pdf` 依旧在渲染进程或主进程内解析，全程不产生临时文件、不修改原始文件。
+
+> 因此无需再为 `.doc` / `.xls` 安装约 700MB 的 LibreOffice。若你只装过旧版、看到过 LibreOffice 缺失横幅，请升级到本版后重新对比。
 
 ## 三、支持格式矩阵
 
-| 格式 | 解析方式 | 需 LibreOffice | 差异粒度 |
+| 格式 | 解析方式 | 外部依赖 | 差异粒度 |
 |---|---|---|---|
-| `.docx` | 渲染进程内联 ZIP 中央目录解析 `word/document.xml` + DOMParser | 否 | 段落 / 文本行，字符级高亮 |
-| `.doc` | LibreOffice 无头转 `.docx` 后按 docx 解析 | **是** | 段落 / 文本行，字符级高亮 |
-| `.txt` / `.md` / `.csv` / `.log` 等 | 渲染进程 `TextDecoder`，自动识别 UTF-8 BOM / UTF-16 / GBK | 否 | 文本行，字符级高亮 |
-| `.xlsx` | 主进程 SheetJS，逐单元格取值、公式、类型 | 否 | **单元格**，区分值 / 公式 / 类型变更 |
-| `.xls` | LibreOffice 无头转 `.xlsx` 后按 xlsx 解析 | **是** | **单元格**，区分值 / 公式 / 类型变更 |
-| `.pdf` | 主进程 pdfjs-dist 提取文本层，按坐标聚合为行 | 否（扫描件需先 OCR） | 文本行，字符级高亮 |
+| `.docx` | 渲染进程内联 ZIP 中央目录解析 `word/document.xml` + DOMParser | 无 | 段落 / 文本行，字符级高亮 |
+| `.doc` | 主进程 `word-extractor` 直提 OLE2 正文，按 `\r\n\|\r\|\n` 拆行 | 无 | 段落 / 文本行，字符级高亮 |
+| `.txt` / `.md` / `.csv` / `.log` 等 | 渲染进程 `TextDecoder`，自动识别 UTF-8 BOM / UTF-16 / GBK | 无 | 文本行，字符级高亮 |
+| `.xlsx` | 主进程 SheetJS，逐单元格取值、公式、类型 | 无 | **单元格**，区分值 / 公式 / 类型变更 |
+| `.xls` | 主进程 SheetJS 直读 OLE2 二进制（与 `.xlsx` 同一解析器） | 无 | **单元格**，区分值 / 公式 / 类型变更 |
+| `.pdf` | 主进程 pdfjs-dist 提取文本层，按坐标聚合为行 | 无（扫描件需先 OCR） | 文本行，字符级高亮 |
 
 **格式组合规则**
 
@@ -61,7 +61,7 @@
 ## 四、使用说明
 
 1. **选文件**：点击左 / 右卡片自带的原生文件对话框选择，或直接把两个文件拖到对应区域（网络映射盘拖拽也能取到真实路径）。
-2. **开始对比**：点击工具栏「开始对比」。解析 / 转换期间显示状态与进度条。
+2. **开始对比**：点击工具栏「开始对比」。解析期间显示状态提示，无转换步骤、无进度条；
 3. **切换视图**：
    - **清单视图**：逐条列出新增 / 删除 / 修改，修改项用 `<ins>`/`<del>` 做字符级高亮；
    - **并排视图**：左右两栏按行对齐，可勾选「同步滚动」按比例联动；
@@ -80,10 +80,10 @@
 - [x] 两份 xlsx → 单元格差异表，覆盖值变更 / 公式变更 / 类型变更 / 新增单元格；
 - [x] 导出链路：原生保存对话框 → 写入 UTF-8 BOM 文件；
 - [x] 扫描 PDF 无文本层 → 中文提示横幅，不崩溃；
-- [x] LibreOffice 缺失 → 中文提示横幅 + 官网下载按钮；
+- [x] 真实 `.doc`（中文/空格路径，word-extractor 直读）→ 文本差异清单，中文 / Tab / 换行均正确；
+- [x] 真实 `.xls`（SheetJS 直读，无 LibreOffice 转换）→ 单元格差异表；
 - [x] 混合格式（docx vs xlsx）→ 强制通用清单，隐藏单元格 Tab；
 - [ ] UNC 长路径（`\\server\share\中文 目录\文档.docx`）：需在有网络映射盘的环境手工复验。程序全程原样传递 UNC 路径，不做 `path.resolve`，不会破坏 `\\` 前缀；
-- [ ] 真实 `.doc` / `.xls` + LibreOffice 安装环境：需在装有 LibreOffice 的机器复验自动转换与进度条。
 
 ## 六、开发
 
@@ -116,7 +116,7 @@ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-
 
 ```
 src/
-  main/          主进程：生命周期、IPC、对话框、LibreOffice 转换、xlsx/pdf 解析、导出
+  main/          主进程：生命周期、IPC、对话框、doc/xlsx/xls/pdf 解析（doc 用 word-extractor，Excel 用 SheetJS）、导出
   preload/       contextBridge 白名单桥接层（构建产物 preload.bundle.js）
   renderer/      界面：index.html / style.css / app.js / shared.bundle.js
   shared/        跨进程共享：constants / diff-core / doc-parsers / cell-diff
@@ -141,10 +141,11 @@ web-version/     前身网页版单文件工具 + 其 QA 测试脚本（零依�
 | `selectFile` | `{filters?}` | `FileMeta\|null` |
 | `saveFile` | `{suggestedName,filters?}` | `string\|null` |
 | `readBuffer` | `{path}` | `Uint8Array` |
-| `convert` | `{inputPath,targetFormat,jobId}` | `{outputPath}` |
-| `parseXlsx` | `{path,meta?}` | `SheetDocument` |
+| `convert` | `{inputPath,targetFormat,jobId}` | `{outputPath}`（历史通道，新版渲染层不再调用） |
+| `parseXlsx` | `{path,meta?}` | `SheetDocument`（xlsx / xls 通用） |
+| `parseDoc` | `{path,meta?}` | `TextDocument`（word-extractor 直读老式 doc） |
 | `parsePdf` | `{path,meta?}` | `TextDocument` |
-| `checkLibreOffice` | 无 | `{installed,path?,version?}` |
+| `checkLibreOffice` | 无 | `{installed,path?,version?}`（历史通道，仅保留兼容，不再使用） |
 | `writeExport` | `{path,content,encoding}` | `null` |
 | `openExternal` | `{url}` | `null` |
 | `getPathForFile` | `File` 对象 | `string`（真实本地路径） |

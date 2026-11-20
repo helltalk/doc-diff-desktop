@@ -74,8 +74,20 @@ test('app.js 调用 readBuffer/openExternal 遵循 preload 字符串入参契约
   assert.ok(!/api\.openExternal\(\s*\{/.test(appJs), 'app.js 不应向 openExternal 传 {url} 对象');
   // 必须保留正确的字符串调用点。
   assert.ok(/api\.readBuffer\(meta\.path\)/.test(appJs), '缺少 readBuffer(meta.path) 调用');
-  assert.ok(/api\.readBuffer\(outputPath\)/.test(appJs), '缺少 readBuffer(outputPath) 调用');
   assert.ok(/api\.openExternal\(LO_DOWNLOAD_URL\)/.test(appJs), '缺少 openExternal(LO_DOWNLOAD_URL) 调用');
+});
+
+test('app.js 中 doc/xls 不再走 LibreOffice 转换，改为 parseDoc / parseXlsx 直读', function () {
+  const appJs = fs.readFileSync(path.join(rendererDir, 'app.js'), 'utf8');
+  assert.ok(!/api\.convert\s*\(/.test(appJs), '渲染层不应再调用 api.convert()');
+  assert.ok(!/api\.checkLibreOffice\s*\(/.test(appJs), '渲染层不应再调用 api.checkLibreOffice()');
+  assert.ok(!/ensureConverted\s*\(/.test(appJs), '不应保留转换前置检查');
+  assert.ok(!/正在转换/.test(appJs), '不应再显示转换进度文案');
+  assert.ok(!/api\.readBuffer\(outputPath\)/.test(appJs), '不应再读取转换后的临时文件');
+  assert.ok(/api\.parseDoc\(\{ path: meta\.path, meta: meta \}\)/.test(appJs), 'doc 应直走 parseDoc');
+  assert.ok(/api\.parseXlsx\(\{ path: meta\.path, meta: meta \}\)/.test(appJs), 'xlsx/xls 应直走 parseXlsx');
+  assert.ok(/kind === 'xlsx' \|\| kind === 'xls'/.test(appJs), 'xls 应与 xlsx 共用单元格解析分支');
+  assert.ok(/kind === 'doc'/.test(appJs), 'doc 应有独立文本解析分支');
 });
 
 test('E2E 桩 readBuffer 只接受字符串路径，不再掩盖真实 preload 契约', function () {

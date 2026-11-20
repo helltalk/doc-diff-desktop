@@ -73,7 +73,7 @@ function showStatus(type, message) {
   el.innerHTML = '<div class="status-icon">' + (icons[type] || '') + '</div><div>' + escapeHtml(message) + '</div>';
 }
 
-/** 统一横幅：LibreOffice 缺失 / 扫描 PDF 无文本层。 */
+/** 统一横幅：扫描 PDF 无文本层等提示（doc/xls 直读后不再有 LibreOffice 缺失提示）。 */
 function showBanner(kind, message) {
   const banner = $(kind === 'lo' ? 'loBanner' : 'pdfNotice');
   const text = $(kind === 'lo' ? 'loBannerText' : 'pdfNoticeText');
@@ -85,23 +85,6 @@ function showBanner(kind, message) {
 function hideBanners() {
   $('loBanner').classList.add('hidden');
   $('pdfNotice').classList.add('hidden');
-}
-
-function showProgress(text) {
-  const bar = $('convertProgress');
-  bar.classList.remove('hidden');
-  $('convertProgressText').textContent = text;
-  $('convertProgressFill').style.width = '0%';
-}
-
-function updateProgress(percent, message) {
-  const value = Math.max(0, Math.min(100, Number(percent) || 0));
-  $('convertProgressFill').style.width = value + '%';
-  $('convertProgressText').textContent = '正在转换… ' + value + '%' + (message ? '　' + message : '');
-}
-
-function hideProgress() {
-  $('convertProgress').classList.add('hidden');
 }
 
 /** 把 IPC 的统一返回解包；失败时抛出带 code 的 Error。 */
@@ -157,33 +140,12 @@ function toArrayBuffer(bytes) {
 }
 
 /* ===================== 文档读取与类型分流 ===================== */
-/** LibreOffice 转换前统一检测；未安装时抛出带 E_LO_MISSING 的错误。 */
-async function ensureConverted(meta, targetFormat, jobId) {
-  const detection = call(await api.checkLibreOffice());
-  if (!detection || !detection.installed) {
-    const err = new Error('未检测到 LibreOffice，无法转换 ' + meta.name + '。');
-    err.code = APP_ERR.LO_MISSING;
-    throw err;
-  }
-  const result = await api.convert({
-    inputPath: meta.path,
-    targetFormat: targetFormat,
-    jobId: jobId
-  });
-  const converted = call(result);
-  if (!converted || !converted.outputPath) {
-    const err = new Error('转换完成但未获得结果文件。');
-    err.code = APP_ERR.CONVERT_NO_OUTPUT;
-    throw err;
-  }
-  return converted.outputPath;
-}
-
 /**
  * 把任意支持格式归一化为：
  *   {kind:'text', lines:string[]} 或 {kind:'sheet', sheetDoc:SheetDocument}
+ * doc/xls 均为纯 JS 直读：doc → word-extractor，xls/xlsx → SheetJS，无需 LibreOffice。
  */
-async function loadDocument(meta, jobId) {
+async function loadDocument(meta) {
   const kind = fileKindOf(meta);
 
   if (kind === 'text' || kind === 'docx') {
@@ -196,27 +158,19 @@ async function loadDocument(meta, jobId) {
     return { kind: 'text', lines: String(text).split(/\r\n|\r|\n/), meta: meta };
   }
 
+  if (kind === 'doc') {
+    const doc = call(await api.parseDoc({ path: meta.path, meta: meta }));
+    return { kind: 'text', lines: Array.isArray(doc.lines) ? doc.lines : [], meta: meta };
+  }
+
   if (kind === 'pdf') {
     const doc = call(await api.parsePdf({ path: meta.path, meta: meta }));
     return { kind: 'text', lines: Array.isArray(doc.lines) ? doc.lines : [], meta: meta };
   }
 
-  if (kind === 'xlsx') {
+  if (kind === 'xlsx' || kind === 'xls') {
     const doc = call(await api.parseXlsx({ path: meta.path, meta: meta }));
     return { kind: 'sheet', sheetDoc: doc, meta: meta };
-  }
-
-  if (kind === 'xls') {
-    const outputPath = await ensureConverted(meta, 'xlsx', jobId);
-    const convertedMeta = Object.assign({}, meta, { name: meta.name.replace(/\.xls$/i, '.xlsx') });
-    const doc = call(await api.parseXlsx({ path: outputPath, meta: convertedMeta }));
-    return { kind: 'sheet', sheetDoc: doc, meta: meta };
-  }
-
-  if (kind === 'doc') {
-    const outputPath = await ensureConverted(meta, 'docx', jobId);
-    const bytes = call(await api.readBuffer(outputPath));
-    return { kind: 'text', lines: await docParsers.parseDocx(toArrayBuffer(bytes)), meta: meta };
   }
 
   throw new Error('暂不支持的文件类型：' + (meta.name || meta.path));
@@ -245,24 +199,12 @@ function sheetToLines(sheetDoc) {
   return lines;
 }
 
-/** 订阅转换进度：只接受本次 jobId 的事件。 */
-function subscribeProgress(jobId) {
-  if (typeof api.onConvertProgress !== 'function') return function () {};
-  return api.onConvertProgress(function (progress) {
-    if (!progress || String(progress.jobId) !== String(jobId)) return;
-    updateProgress(progress.percent, progress.message);
-  });
-}
-
 function handleCompareError(err) {
   const message = err && err.message ? err.message : String(err);
   const code = err && err.code ? err.code : '';
   if (code === APP_ERR.PDF_NO_TEXT) {
     showBanner('pdf', message);
     showStatus('error', 'PDF 无可用文本层，无法对比。' + message);
-  } else if (code === APP_ERR.LO_MISSING) {
-    showBanner('lo', message + ' 安装后请重新点击「开始对比」。');
-    showStatus('error', message);
   } else {
     showStatus('error', (code ? '[' + code + '] ' : '') + message);
   }
@@ -282,22 +224,13 @@ async function runCompare() {
   state.busy = true;
   $('btnCompare').disabled = true;
   hideBanners();
-  hideProgress();
   showStatus('loading', '正在解析文档并计算差异，请稍候…');
   await nextFrame();
 
-  const jobId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-  const unsubscribe = subscribeProgress(jobId);
-  const needsConversion = [state.files.old, state.files.new].some(function (meta) {
-    const kind = fileKindOf(meta);
-    return kind === 'doc' || kind === 'xls';
-  });
-  if (needsConversion) showProgress('正在准备 LibreOffice 转换…');
-
   try {
     const results = await Promise.all([
-      loadDocument(state.files.old, jobId),
-      loadDocument(state.files.new, jobId)
+      loadDocument(state.files.old),
+      loadDocument(state.files.new)
     ]);
     state.oldDoc = results[0];
     state.newDoc = results[1];
@@ -330,8 +263,6 @@ async function runCompare() {
     state.compared = false;
     handleCompareError(err);
   } finally {
-    unsubscribe();
-    hideProgress();
     state.busy = false;
     $('btnCompare').disabled = false;
   }
@@ -553,14 +484,14 @@ function setFile(slot, meta) {
                  + '\n' + meta.path;
   el.title = meta.path;
   const kind = fileKindOf(meta);
-  if (kind === 'doc' || kind === 'xls') {
-    el.classList.add('ok');
-    toast(kind === 'doc' ? '.doc 需本机安装 LibreOffice 后转换' : '.xls 需本机安装 LibreOffice 后转换');
-  } else if (!meta.path) {
+  if (!meta.path) {
     el.classList.add('err');
     toast('未能取得文件路径，建议使用「点击选择」按钮。');
   } else {
     el.classList.add('ok');
+    if (kind === 'doc' || kind === 'xls') {
+      toast('已识别旧格式（' + (kind === 'doc' ? '.doc' : '.xls') + '），将直接解析，无需安装外部软件。');
+    }
   }
 }
 

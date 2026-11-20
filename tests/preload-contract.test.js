@@ -113,10 +113,21 @@ test('真实 preload：openExternal({url:字符串}) 兼容 → {url:字符串}'
   assert.ok(result && typeof result.then === 'function', 'openExternal 应返回 Promise');
 });
 
+test('真实 preload：parseDoc({path,meta}) → parse:doc 通道且 payload 原样', function () {
+  const loaded = loadRealPreload();
+  const payload = { path: 'E:\\中文 目录\\旧格式 示例.doc', meta: { name: '旧格式 示例.doc', ext: 'doc' } };
+  const result = loaded.api.parseDoc(payload);
+
+  assert.equal(loaded.calls.length, 1);
+  assert.equal(loaded.calls[0].channel, IPC.PARSE_DOC);
+  assert.deepEqual(Object.assign({}, loaded.calls[0].payload), payload);
+  assert.ok(result && typeof result.then === 'function', 'parseDoc 应返回 Promise（word-extractor 为异步 API）');
+});
+
 test('真实 preload：exposeInMainWorld 白名单方法名保持不变且 API 被冻结', function () {
   const loaded = loadRealPreload();
   const expected = [
-    'selectFile', 'saveFile', 'readBuffer', 'convert', 'parseXlsx', 'parsePdf',
+    'selectFile', 'saveFile', 'readBuffer', 'convert', 'parseXlsx', 'parseDoc', 'parsePdf',
     'checkLibreOffice', 'writeExport', 'openExternal', 'getPathForFile', 'onConvertProgress'
   ];
   for (const name of expected) {

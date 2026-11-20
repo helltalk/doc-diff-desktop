@@ -6,8 +6,9 @@
  *   2) 两份 xlsx → 单元格差异表 + 第三 Tab 可见；
  *   3) 原生导出链路（saveFile → writeExport）；
  *   4) 扫描 PDF 无文本层 → 中文提示横幅；
- *   5) LibreOffice 缺失 → 下载指引横幅；
- *   6) 混合格式（docx vs xlsx）→ 强制通用清单、隐藏单元格 Tab。
+ *   5) 真实 .doc（中文/空格路径，word-extractor 直读）→ 文本差异清单；
+ *   6) 混合格式（docx vs xlsx）→ 强制通用清单、隐藏单元格 Tab；
+ *   7) 真实 .xls（SheetJS 直读）→ 单元格差异表。
  */
 
 const path = require('node:path');
@@ -93,13 +94,18 @@ const scenarioScript = `(async function () {
     status: shortStatus()
   };
 
-  // 5) LibreOffice 缺失（.doc 旧格式）
+  // 5) 真实 .doc 直读（中文 + 空格路径，word-extractor）
   setFile('old', meta(window.__e2ePaths.docOld));
-  setFile('new', meta(window.__e2ePaths.docxOld));
+  setFile('new', meta(window.__e2ePaths.docNew));
   await runCompare();
-  results.loMissing = {
-    bannerVisible: !document.getElementById('loBanner').classList.contains('hidden'),
-    status: shortStatus()
+  results.doc = {
+    mode: state.mode,
+    compared: state.compared,
+    diffCount: state.diffs.length,
+    hasCards: document.querySelectorAll('#diffList .diff-card').length > 0,
+    status: shortStatus(),
+    pathsHaveChineseAndSpace: /中文 路径 测试/.test(state.files.old.path)
+      && /中文 路径 测试/.test(state.files.new.path)
   };
 
   // 6) 混合格式：docx vs xlsx → 通用清单、隐藏单元格 Tab
@@ -112,6 +118,20 @@ const scenarioScript = `(async function () {
     cellTabHidden: document.querySelector('button[data-view="cell"]').classList.contains('hidden'),
     diffCount: state.diffs.length,
     listVisible: !document.getElementById('listView').classList.contains('hidden')
+  };
+
+  // 7) 真实 .xls 直读（SheetJS，无 LibreOffice 转换）
+  setFile('old', meta(window.__e2ePaths.xlsOld));
+  setFile('new', meta(window.__e2ePaths.xlsNew));
+  await runCompare();
+  results.xls = {
+    mode: state.mode,
+    view: state.view,
+    cellDiffCount: state.cellDiffs.length,
+    tableRows: document.querySelectorAll('.cell-table tbody tr').length,
+    cellTabVisible: !document.querySelector('button[data-view="cell"]').classList.contains('hidden'),
+    status: shortStatus(),
+    newPathHasChineseAndSpace: /中文 路径 测试/.test(state.files.new.path)
   };
 
   return JSON.stringify(results);

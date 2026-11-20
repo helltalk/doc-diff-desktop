@@ -15,6 +15,7 @@ const dialogs = require('./dialogs');
 const converter = require('./converter');
 const exporter = require('./exporter');
 const { parseXlsx } = require('./parsers/parse-xlsx');
+const { parseDoc } = require('./parsers/parse-doc');
 const { parsePdf } = require('./parsers/parse-pdf');
 
 /** 统一包装 IPC handler。 */
@@ -75,12 +76,20 @@ async function runConvert(event, payload) {
   return converter.convert(payload.inputPath, payload.targetFormat, payload.jobId, onProgress);
 }
 
-/** Excel 解析：meta 缺失时由路径现场构造。 */
+/** Excel 解析：meta 缺失时由路径现场构造（xlsx 与 xls 均走 SheetJS 直读）。 */
 async function parseWorkbook(_event, payload) {
   const filePath = String(payload.path || '');
   if (!filePath) throw serviceError(ERR.FILE_NOT_FOUND, '未提供 Excel 文件路径。');
   const meta = payload.meta || dialogs.toFileMeta(filePath);
   return parseXlsx(filePath, meta);
+}
+
+/** 老式 .doc 解析：word-extractor 纯 JS 直提正文，无需 LibreOffice。 */
+async function parseLegacyDoc(_event, payload) {
+  const filePath = String(payload.path || '');
+  if (!filePath) throw serviceError(ERR.FILE_NOT_FOUND, '未提供 .doc 文件路径。');
+  const meta = payload.meta || dialogs.toFileMeta(filePath);
+  return parseDoc(filePath, meta);
 }
 
 /** PDF 解析：meta 缺失时由路径现场构造。 */
@@ -123,6 +132,7 @@ function registerIpc() {
     [IPC.FILE_READ_BUFFER, wrap(readBuffer, ERR.FILE_READ)],
     [IPC.CONVERT_RUN, wrap(runConvert, ERR.CONVERT_FAILED)],
     [IPC.PARSE_XLSX, wrap(parseWorkbook, ERR.FILE_READ)],
+    [IPC.PARSE_DOC, wrap(parseLegacyDoc, ERR.FILE_READ)],
     [IPC.PARSE_PDF, wrap(parseDocument, ERR.FILE_READ)],
     [IPC.LIBREOFFICE_CHECK, wrap(function () {
       return converter.detect();

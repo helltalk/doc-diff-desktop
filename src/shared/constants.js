@@ -13,6 +13,7 @@ const IPC = Object.freeze({
   FILE_READ_BUFFER: 'file:read-buffer',
   CONVERT_RUN: 'convert:run',
   PARSE_XLSX: 'parse:xlsx',
+  PARSE_DOC: 'parse:doc',
   PARSE_PDF: 'parse:pdf',
   LIBREOFFICE_CHECK: 'libreoffice:check',
   EXPORT_WRITE: 'export:write',
@@ -39,7 +40,7 @@ const ERR = Object.freeze({
  * 文件扩展名到处理类型的映射。
  * - text: 渲染进程可直接解码为文本行
  * - docx: 渲染进程用内联 ZIP+DOMParser 解析
- * - doc/xls: 需 LibreOffice 转 docx/xlsx
+ * - doc/xls: 主进程专用解析器直读（doc→word-extractor，xls→SheetJS），无需 LibreOffice
  * - xlsx/pdf: 主进程专用解析器
  */
 const FILE_KIND_MAP = Object.freeze({

@@ -60,6 +60,11 @@ const electronAPI = Object.freeze({
     return invoke(IPC.PARSE_XLSX, options || {});
   },
 
+  /** 解析老式 .doc 为 TextDocument（word-extractor 直提，无需 LibreOffice）：入参 {path,meta} */
+  parseDoc: function (options) {
+    return invoke(IPC.PARSE_DOC, options || {});
+  },
+
   /** 解析 pdf 文本层为 TextDocument：入参 {path,meta} */
   parsePdf: function (options) {
     return invoke(IPC.PARSE_PDF, options || {});
